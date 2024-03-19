@@ -493,7 +493,7 @@ kombu===5.2.3;python_version=='3.8'
 pyroute2.ndb===0.6.6
 distro===1.7.0
 zstd===1.5.1.0
-yaql===2.0.0
+yaql===3.0.0
 requestsexceptions===1.4.0
 testresources===2.0.1
 falcon===3.0.1

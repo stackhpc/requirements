@@ -101,7 +101,7 @@ simplejson===3.17.6
 types-paramiko===2.11.6
 immutables===0.19
 python-swiftclient===4.2.0
-pyOpenSSL===22.1.0
+pyOpenSSL===24.0.0
 monasca-common===3.7.0
 zeroconf===0.39.1
 scipy===1.9.1
@@ -183,7 +183,7 @@ PyYAML===6.0
 beautifulsoup4===4.11.1
 os-net-config===16.0.0
 ovs===2.17.7
-cryptography===38.0.2
+cryptography===42.0.4
 httpcore===0.15.0
 URLObject===2.4.3
 nocasedict===1.0.4

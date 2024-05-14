@@ -463,7 +463,7 @@ pyasn1===0.4.8
 directord===0.12.0
 oslo.rootwrap===6.3.1
 pyroute2.nslink===0.6.6
-Django===3.2.12
+Django===3.2.19
 pexpect===4.8.0
 contextvars===2.4
 cmd2===2.4.0

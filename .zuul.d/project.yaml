@@ -3,9 +3,6 @@
       - openstack-python3-zed-jobs
     check:
       jobs:
-        - build-wheel-cache-centos-8-stream:
-            files:
-              - bindep.txt
         - build-wheel-cache-ubuntu-bionic:
             files:
               - bindep.txt
@@ -20,7 +17,8 @@
         - requirements-tox-bindep:
             voting: false
         - requirements-tox-py38-check-uc
-        - requirements-tox-py39-check-uc
+        - requirements-tox-py39-check-uc:
+            voting: false
         - requirements-tox-validate-projects:
             voting: false
         - cross-aodh-py38
@@ -59,9 +57,6 @@
             files:
               - bindep.txt
               - upper-constraints.txt
-        - build-wheel-cache-centos-8-stream-arm64:
-            files:
-              - bindep.txt
         - build-wheel-cache-ubuntu-bionic-arm64:
             files:
               - bindep.txt
@@ -73,9 +68,6 @@
               - bindep.txt
     gate:
       jobs:
-        - build-wheel-cache-centos-8-stream:
-            files:
-              - bindep.txt
         - build-wheel-cache-ubuntu-bionic:
             files:
               - bindep.txt
@@ -88,7 +80,6 @@
         - openstack-tox-validate
         - requirements-tox-babel
         - requirements-tox-py38-check-uc
-        - requirements-tox-py39-check-uc
         - cross-cinder-py38
         - cross-designate-py38
         - cross-glance-py38

@@ -470,7 +470,7 @@ XStatic===1.0.2
 XStatic-Angular-FileUpload===12.0.4.0
 python-openstackclient===6.2.1
 # NOTE(wszusmki): See https://review.opendev.org/c/openstack/kolla/+/878663/1/docker/neutron/neutron-mlnx-agent/Dockerfile.j2
-pyzmq===21.*
+pyzmq==21.*
 nocaselist===1.0.6
 oslo.db===12.3.2
 simplegeneric===0.8.1

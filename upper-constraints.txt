@@ -130,7 +130,7 @@ doc8===1.1.1
 pymongo===4.6.1
 python-cloudkittyclient===5.0.0
 soupsieve===2.5
-sqlparse===0.4.4
+sqlparse===0.5.0
 oslotest===5.0.0
 jsonpointer===2.4
 defusedxml===0.7.1
@@ -527,7 +527,7 @@ os-vif===3.5.0
 hyperlink===21.0.0
 mitba===1.1.1
 python-masakariclient===8.4.0
-Werkzeug===3.0.1
+Werkzeug===3.0.3
 pyasn1-modules===0.3.0
 APScheduler===3.10.4
 xmlschema===2.5.1

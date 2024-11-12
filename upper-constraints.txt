@@ -164,7 +164,7 @@ XStatic-roboto-fontface===0.5.0.0
 pyudev===0.24.1
 eventlet===0.35.1
 openstack-doc-tools===3.3.1
-oslo.messaging===14.7.1
+oslo.messaging===14.7.2
 jira===3.6.0
 extras===1.0.0
 PyJWT===2.8.0
@@ -255,7 +255,7 @@ funcparserlib===1.0.1
 passlib===1.7.4
 dib-utils===0.0.11
 cliff===4.6.0
-os-brick===6.7.0
+os-brick===6.7.1
 ansible-runner===2.3.5
 scp===0.14.5
 python-zaqarclient===2.7.0

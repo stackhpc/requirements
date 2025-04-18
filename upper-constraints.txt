@@ -193,7 +193,7 @@ httpcore===1.0.7
 URLObject===2.4.3
 psycopg2-binary===2.9.10
 glance_store===4.9.1
-openstack-release-test===8.0.0
+openstack-release-test===8.1.0
 pycryptodomex===3.21.0
 requests-mock===1.12.1
 os-apply-config===14.0.0
@@ -359,7 +359,7 @@ django-formtools===2.5.1
 XStatic-Spin===1.2.5.3
 rich===13.9.4
 tap-as-a-service===15.0.0.0rc1
-os-traits===3.3.0
+os-traits===3.4.0
 typepy===1.3.4
 SecretStorage===3.3.3
 opentracing===2.4.0
@@ -480,7 +480,7 @@ python-ironicclient===5.10.0
 babel===2.17.0
 XStatic===1.0.3
 XStatic-Angular-FileUpload===12.2.13.0
-python-openstackclient===7.4.0
+python-openstackclient===8.0.0
 pyzmq===26.2.1
 oslo.db===17.2.1
 simplegeneric===0.8.1

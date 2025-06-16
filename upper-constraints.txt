@@ -170,7 +170,7 @@ pydot===4.0.0
 urllib3===1.26.20
 graphviz===0.20.3
 PyKMIP===0.10.0
-python-observabilityclient===0.5.0
+python-observabilityclient===1.0.0
 whereto===0.4.0
 pywbem===1.7.3
 python-subunit===1.4.4
@@ -356,7 +356,7 @@ SecretStorage===3.3.3
 opentracing===2.4.0
 XStatic-Rickshaw===1.5.1.0
 iso8601===2.1.0
-tooz===6.3.0
+tooz===7.0.0
 idna===3.10
 yamlloader===1.5.1
 protobuf===5.29.5
@@ -368,7 +368,7 @@ oslo.cache===3.11.0
 WebTest===3.0.4
 os-collect-config===14.0.0
 edgegrid-python===2.0.1
-python-octaviaclient===3.11.0
+python-octaviaclient===3.11.1
 pysaml2===7.5.2
 requests-oauthlib===2.0.0
 oslo.reports===3.5.1
@@ -456,7 +456,7 @@ sentinels===1.0.0
 kombu===5.5.3
 distro===1.9.0
 zstd===1.5.7.0
-yaql===3.0.0
+yaql===3.1.0
 durationpy===0.10
 requestsexceptions===1.4.0
 testresources===2.0.2
@@ -510,7 +510,7 @@ netifaces===0.11.0
 cachetools===5.5.2
 flexcache===0.3
 sphinxcontrib-qthelp===2.0.0
-keystoneauth1===5.11.0
+keystoneauth1===5.11.1
 statsd===4.0.1
 proto-plus===1.26.1
 python-keystoneclient===5.6.0

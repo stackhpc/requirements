@@ -220,7 +220,7 @@ exceptiongroup===1.2.0;python_version=='3.9'
 os-client-config===2.1.0
 XStatic-Angular-Gettext===2.4.1.0
 Deprecated===1.2.14
-h11===0.16.0
+h11===0.14.0
 Pygments===2.17.2
 XStatic-Hogan===2.0.0.3
 XStatic-objectpath===1.2.1.0

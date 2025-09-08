@@ -25,7 +25,7 @@ osprofiler===4.3.0
 os-resource-classes===1.1.0
 mypy_extensions===1.1.0
 tabulate===0.9.0
-python-ironic-inspector-client===5.3.1
+python-ironic-inspector-client===5.4.0
 lxml===6.0.0
 vintage===0.4.1
 rst2txt===1.1.0
@@ -51,7 +51,7 @@ Pint===0.23;python_version=='3.9'
 Pint===0.24.4;python_version>='3.10'
 oslo.i18n===6.6.0
 jsonpath-rw-ext===1.2.2
-python-mistralclient===5.4.0
+python-mistralclient===6.0.0
 oslo.context===6.1.0
 rcssmin===1.1.2
 pycadf===4.0.1
@@ -79,8 +79,8 @@ XStatic-Graphlib===2.1.7.0
 pyserial===3.5
 moto===5.1.9
 infi.dtypes.wwn===0.1.1
-python-freezerclient===6.0.0
-python-vitrageclient===5.2.0
+python-freezerclient===6.1.0
+python-vitrageclient===5.3.0
 py-pure-client===1.73.0
 krest===1.3.7
 psycopg2===2.9.10
@@ -117,7 +117,7 @@ responses===0.25.7
 croniter===6.0.0
 horizon===25.4.0
 octavia-lib===3.10.0
-python-watcherclient===4.8.0
+python-watcherclient===4.9.0
 MarkupSafe===3.0.2
 types-python-dateutil===2.9.0.20250708
 ruamel.yaml.clib===0.2.12
@@ -199,10 +199,10 @@ textfsm===1.1.3
 python-3parclient===4.2.14
 django-compressor===4.5.1
 libvirt-python===11.6.0
-python-zunclient===5.2.1
+python-zunclient===5.3.0
 tzlocal===5.3.1
 sphinxcontrib-jsmath===1.0.1
-python-novaclient===18.10.0
+python-novaclient===18.11.0
 pact===1.12.0
 bcrypt===4.0.1
 exceptiongroup===1.3.0;python_version=='3.10'
@@ -214,7 +214,7 @@ h11===0.16.0
 Pygments===2.19.2
 XStatic-Hogan===2.0.0.3
 XStatic-objectpath===1.2.1.0
-python-manilaclient===5.5.0
+python-manilaclient===5.6.0
 sphinxcontrib-serializinghtml===2.0.0
 requests===2.32.4
 snowballstemmer===3.0.1
@@ -359,7 +359,7 @@ testtools===2.7.2
 infi.dtypes.iqn===0.4.0
 XStatic-tv4===1.2.7.0
 XStatic-JSEncrypt===2.3.1.1
-python-cinderclient===9.7.0
+python-cinderclient===9.8.0
 keystonemiddleware===10.10.0;python_version=='3.9'
 keystonemiddleware===10.11.0;python_version>='3.10'
 django-formtools===2.5.1
@@ -407,7 +407,7 @@ Sphinx===7.4.7;python_version=='3.9'
 Sphinx===8.1.3;python_version>='3.10'
 oslo.config===10.0.0
 openstackdocstheme===3.5.0
-osc-placement===4.6.0
+osc-placement===4.7.0
 rpds-py===0.26.0
 zake===0.2.2
 flux===1.3.5
@@ -483,7 +483,7 @@ etcd3gw===2.4.2
 Flask-RESTful===0.3.10
 GitPython===3.1.45
 requests_ntlm===1.3.0
-python-ironicclient===5.12.0
+python-ironicclient===5.13.0
 babel===2.17.0
 XStatic===1.0.3
 XStatic-Angular-FileUpload===12.2.13.0
@@ -516,11 +516,11 @@ XStatic-Json2yaml===0.1.1.0
 boto===2.49.0
 hyperlink===21.0.0
 mitba===1.1.1
-python-masakariclient===8.6.0
+python-masakariclient===8.7.0
 Werkzeug===3.1.3
 APScheduler===3.11.0
 xmlschema===2.5.1
-python-troveclient===8.8.0
+python-troveclient===8.9.0
 cachez===0.1.2
 XStatic-Bootstrap-Datepicker===1.4.0.0
 netifaces===0.11.0
@@ -533,7 +533,7 @@ proto-plus===1.26.1
 python-keystoneclient===5.7.0
 diskimage-builder===3.39.0
 heat-translator===3.2.0
-python-magnumclient===4.8.1
+python-magnumclient===4.9.0
 docker===7.1.0
 storops===1.2.11
 anyio===4.9.0

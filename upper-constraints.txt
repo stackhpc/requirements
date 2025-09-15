@@ -109,13 +109,13 @@ rsd-lib===1.2.0
 XStatic-Jasmine===2.4.1.2
 googleapis-common-protos===1.70.0
 python-glanceclient===4.8.0;python_version=='3.9'
-python-glanceclient===4.9.0;python_version>='3.10'
+python-glanceclient===4.10.0;python_version>='3.10'
 prometheus_client===0.22.1
 jaraco.classes===3.4.0
 debtcollector===3.0.0
 responses===0.25.7
 croniter===6.0.0
-horizon===25.4.0
+horizon===25.5.0
 octavia-lib===3.10.0
 python-watcherclient===4.9.0
 MarkupSafe===3.0.2
@@ -150,7 +150,7 @@ async-timeout===5.0.1;python_version=='3.10'
 async-timeout===5.0.1;python_version=='3.9'
 virtualbmc===3.2.0
 SQLAlchemy===2.0.42
-pyroute2===0.9.4
+pyroute2===0.8.1
 google-auth===2.40.3
 kazoo===2.10.0
 pyspnego===0.11.2
@@ -189,7 +189,7 @@ httpcore===1.0.9
 URLObject===3.0.0
 psycopg2-binary===2.9.10
 glance_store===4.10.0;python_version=='3.9'
-glance_store===5.0.0;python_version>='3.10'
+glance_store===5.2.0;python_version>='3.10'
 openstack-release-test===8.1.0
 requests-mock===1.12.1
 os-apply-config===14.0.1
@@ -244,11 +244,11 @@ influxdb===5.3.2
 funcparserlib===2.0.0a0
 passlib===1.7.4
 cliff===4.9.1;python_version=='3.9'
-cliff===4.10.0;python_version>='3.10'
+cliff===4.11.0;python_version>='3.10'
 os-brick===6.13.0
 scp===0.15.0
 python-zaqarclient===3.0.1;python_version=='3.9'
-python-zaqarclient===4.0.0;python_version>='3.10'
+python-zaqarclient===4.1.0;python_version>='3.10'
 ldappool===3.0.0
 hpack===4.1.0
 joblib===1.5.1
@@ -258,7 +258,7 @@ oslo.versionedobjects===3.8.0
 enmerkar===0.7.1
 webcolors===24.11.1
 aodhclient===3.8.0;python_version=='3.9'
-aodhclient===3.9.0;python_version>='3.10'
+aodhclient===3.9.1;python_version>='3.10'
 autobahn===24.4.2
 SQLAlchemy-Utils===0.41.2
 retryz===0.1.9
@@ -361,7 +361,7 @@ XStatic-tv4===1.2.7.0
 XStatic-JSEncrypt===2.3.1.1
 python-cinderclient===9.8.0
 keystonemiddleware===10.10.0;python_version=='3.9'
-keystonemiddleware===10.11.0;python_version>='3.10'
+keystonemiddleware===10.12.0;python_version>='3.10'
 django-formtools===2.5.1
 XStatic-Spin===1.2.5.3
 rich===14.1.0
@@ -396,7 +396,7 @@ sympy===1.14.0
 Logbook===1.8.2
 PyNaCl===1.5.0
 osc-lib===4.0.2;python_version=='3.9'
-osc-lib===4.1.0;python_version>='3.10'
+osc-lib===4.2.0;python_version>='3.10'
 python-consul===1.1.0
 more-itertools===10.7.0
 seqdiag===3.0.0
@@ -463,7 +463,7 @@ xattr===1.2.0
 systemd-python===235
 python-memcached===1.62
 openstacksdk===4.5.0;python_version=='3.9'
-openstacksdk===4.6.0;python_version>='3.10'
+openstacksdk===4.7.1;python_version>='3.10'
 infi.dtypes.nqn===0.1.0
 six===1.17.0
 h2===4.2.0
@@ -488,7 +488,7 @@ babel===2.17.0
 XStatic===1.0.3
 XStatic-Angular-FileUpload===12.2.13.0
 python-openstackclient===8.0.0;python_version=='3.9'
-python-openstackclient===8.1.0;python_version>='3.10'
+python-openstackclient===8.2.0;python_version>='3.10'
 pyzmq===27.0.0
 oslo.db===17.4.0
 simplegeneric===0.8.1

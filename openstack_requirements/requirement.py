@@ -15,8 +15,8 @@
 # This module has no IO at all, and none should be added.
 
 import collections
-import distutils.version
 import packaging.specifiers
+import packaging.version
 import pkg_resources
 import re
 
@@ -26,7 +26,7 @@ def key_specifier(a):
               '===': 1, '==': 1, '~=': 1, '!=': 1,
               '<': 2, '<=': 2}
     a = a._spec
-    return (weight[a[0]], distutils.version.LooseVersion(a[1]))
+    return (weight[a[0]], packaging.version.parse(a[1]))
 
 
 class Requirement(collections.namedtuple('Requirement',
@@ -179,6 +179,11 @@ def _pass_through(req_line, permit_urls=False):
 def to_reqs(content, permit_urls=False):
     for content_line in content.splitlines(True):
         req_line = content_line.strip()
+
+        # skip comments, blank lines
+        if req_line.startswith('#') or not req_line:
+            continue
+
         if _pass_through(req_line, permit_urls=permit_urls):
             yield None, content_line
         else:

@@ -12,11 +12,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-
 import argparse
 import re
 
-import pkg_resources
+import packaging.requirements
 
 overrides = dict()
 # List of overrides needed. Ignore version in pip-freeze and use the one here
@@ -38,7 +37,7 @@ def cap(requirements, frozen):
     output = []
     for line in requirements:
         try:
-            req = pkg_resources.Requirement.parse(line)
+            req = packaging.requirements.Requirement(line)
             specifier = str(req.specifier)
             if any(op in specifier for op in ['==', '~=', '<']):
                 # if already capped, continue
@@ -67,7 +66,7 @@ def cap(requirements, frozen):
 def pin(line, new_cap):
     """Add new cap into existing line
 
-    Don't use pkg_resources so we can preserve the comments.
+    Don't use packaging.requirements so we can preserve the comments.
     """
     end = None
     use_comma = False
@@ -79,13 +78,13 @@ def pin(line, new_cap):
         end = parts[1]
     # cap to new max version
     if end:
-        new_end = "<=%s #%s" % (new_cap, end)
+        new_end = f"<={new_cap} #{end}"
     else:
-        new_end = "<=%s" % new_cap
+        new_end = f"<={new_cap}"
     if use_comma is True:
-        return "%s,%s" % (parts[0].strip(), new_end)
+        return f"{parts[0].strip()},{new_end}"
     else:
-        return "%s%s" % (parts[0].strip(), new_end)
+        return f"{parts[0].strip()}{new_end}"
 
 
 def split(line):
@@ -109,7 +108,7 @@ def freeze(lines):
 
     for line in lines:
         try:
-            req = pkg_resources.Requirement.parse(line)
+            req = packaging.requirements.Requirement(line)
             freeze[req.project_name] = req.specifier
         except ValueError:
             # not a valid requirement, can be a comment, blank line etc
@@ -120,12 +119,13 @@ def freeze(lines):
 def main():
     parser = argparse.ArgumentParser(
         description="Take the output of "
-                    "'pip freeze' and use the installed versions to "
-                    "caps requirements.")
+        "'pip freeze' and use the installed versions to "
+        "caps requirements."
+    )
     parser.add_argument('requirements', help='requirements file input')
     parser.add_argument(
-        'freeze',
-        help='output of pip freeze, taken from a full tempest job')
+        'freeze', help='output of pip freeze, taken from a full tempest job'
+    )
     args = parser.parse_args()
     with open(args.requirements) as f:
         requirements = [line.strip() for line in f.readlines()]

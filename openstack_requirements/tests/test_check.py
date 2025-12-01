@@ -30,24 +30,24 @@ class TestRequirementsList(testtools.TestCase):
         project_data = {
             'root': '/fake/root',
             'requirements': {
-                'requirements.txt': 'requests>=2.0.0\n'
+                'requirements.txt': ['requests>=2.0.0'],
             },
             'extras': {
                 'setup.cfg': {
-                    'test': 'pytest>=6.0.0\nflake8>=3.8.0\n',
-                    'dev': 'black>=24.0.0\nmypy>=0.900\n'
+                    'test': ['pytest>=6.0.0', 'flake8>=3.8.0'],
+                    'dev': ['black>=24.0.0', 'mypy>=0.900'],
                 }
-            }
+            },
         }
 
         req_list = check.RequirementsList('test-project', project_data)
         req_list.process(strict=False)
 
-        self.assertIn('test', req_list.reqs_by_file)
-        self.assertIn('dev', req_list.reqs_by_file)
+        self.assertIn('setup.cfg (.[test] extra)', req_list.reqs_by_file)
+        self.assertIn('setup.cfg (.[dev] extra)', req_list.reqs_by_file)
 
-        test_reqs = req_list.reqs_by_file['test']
-        dev_reqs = req_list.reqs_by_file['dev']
+        test_reqs = req_list.reqs_by_file['setup.cfg (.[test] extra)']
+        dev_reqs = req_list.reqs_by_file['setup.cfg (.[dev] extra)']
 
         self.assertEqual(len(test_reqs), 2)
         self.assertIn('pytest', test_reqs)

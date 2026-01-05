@@ -50,7 +50,7 @@ pbr===7.0.3
 munch===4.0.0
 waiting===1.5.0
 attrs===25.4.0
-microversion-parse===2.0.0
+microversion-parse===2.1.0
 jwcrypto===1.5.6
 Pint===0.24.4
 oslo.i18n===6.7.1
@@ -106,7 +106,6 @@ hyperframe===6.1.0
 zeroconf===0.148.0
 scipy===1.15.3
 opentelemetry-exporter-otlp===1.38.0
-python-gnupg===0.5.5
 rsd-lib===1.2.0
 XStatic-Jasmine===2.4.1.2
 googleapis-common-protos===1.71.0
@@ -184,8 +183,8 @@ cryptography===43.0.3
 httpcore===1.0.9
 URLObject===3.0.0
 psycopg2-binary===2.9.11
-glance_store===5.2.0
-openstack-release-test===8.1.0
+glance_store===5.3.0
+openstack-release-test===8.2.0
 requests-mock===1.12.1
 os-apply-config===14.0.1
 gunicorn===23.0.0
@@ -234,7 +233,7 @@ daiquiri===3.4.0
 influxdb===5.3.2
 funcparserlib===2.0.0a0
 passlib===1.7.4
-cliff===4.12.0
+cliff===4.13.0
 os-brick===6.13.0
 valkey===6.1.1
 scp===0.15.0
@@ -318,7 +317,7 @@ autopage===0.5.2
 gitdb===4.0.12
 python-monascaclient===2.8.0
 opentelemetry-api===1.38.0
-automaton===3.2.0
+automaton===3.3.0
 types-urllib3===1.26.25.14
 os-service-types===1.8.2
 keyring===25.6.0
@@ -431,7 +430,6 @@ jmespath===1.0.1
 click===8.3.0
 XStatic-smart-table===1.4.13.2
 kuryr-lib===3.3.1
-scrypt===0.9.4
 jsonpatch===1.33
 libsass===0.23.0
 os-testr===3.0.0

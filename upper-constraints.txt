@@ -120,7 +120,7 @@ MarkupSafe===3.0.3
 ruamel.yaml.clib===0.2.14
 doc8===2.0.0
 pymongo===4.15.3
-python-cloudkittyclient===5.4.0
+python-cloudkittyclient===6.0.0
 soupsieve===2.8
 sqlparse===0.5.3
 oslotest===6.0.0
@@ -138,7 +138,7 @@ jsonpath-rw===1.4.0
 prettytable===3.16.0
 vine===5.1.0
 pathspec===0.12.1
-taskflow===6.0.2
+taskflow===6.1.0
 arrow===1.4.0
 semantic-version===2.10.0
 async-timeout===5.0.1
@@ -168,7 +168,7 @@ urllib3===1.26.20
 graphviz===0.21
 PyKMIP===0.10.0
 python-observabilityclient===1.2.0
-whereto===0.4.0
+whereto===0.5.0
 pywbem===1.7.3
 python-subunit===1.4.4
 pycparser===2.23
@@ -230,7 +230,7 @@ daiquiri===3.4.0
 influxdb===5.3.2
 funcparserlib===2.0.0a0
 passlib===1.7.4
-cliff===4.13.0
+cliff===4.13.1
 os-brick===6.14.0
 valkey===6.1.1
 scp===0.15.0
@@ -244,7 +244,7 @@ castellan===5.5.0
 oslo.versionedobjects===3.9.0
 enmerkar===0.7.1
 webcolors===24.11.1
-aodhclient===3.9.1
+aodhclient===3.10.0
 autobahn===24.4.2
 SQLAlchemy-Utils===0.42.0
 retryz===0.1.9
@@ -265,7 +265,7 @@ annotated-types===0.7.0
 pytest-xdist===3.8.0
 XStatic-JS-Yaml===3.8.1.0
 XStatic-term.js===0.0.7.0
-oslo.log===7.2.1
+oslo.log===8.0.0
 nodeenv===1.9.1
 gossip===2.5.0
 suds-community===1.2.0
@@ -277,7 +277,7 @@ pydantic_core===2.41.4
 uritemplate===4.2.0
 docutils===0.21.2
 threadpoolctl===3.6.0
-os-ken===4.1.0
+os-ken===4.1.1
 ujson===5.11.0
 selenium===3.141.0
 pytest-subtests===0.15.0
@@ -307,7 +307,7 @@ metalsmith===2.5.0
 s3transfer===0.10.0
 text-unidecode===1.3
 sphinxcontrib-svg2pdfconverter===1.3.0
-oslo.vmware===4.7.0
+oslo.vmware===4.8.0
 XStatic-moment===2.8.4.3
 autopage===0.5.2
 gitdb===4.0.12
@@ -340,7 +340,7 @@ infi.dtypes.iqn===0.4.0
 XStatic-tv4===1.2.7.0
 XStatic-JSEncrypt===2.3.1.1
 python-cinderclient===9.8.0
-keystonemiddleware===10.12.0
+keystonemiddleware===11.0.0
 django-formtools===2.5.1
 XStatic-Spin===1.2.5.3
 rich===14.2.0
@@ -363,7 +363,7 @@ edgegrid-python===2.0.2
 python-octaviaclient===3.12.0
 pysaml2===7.5.4
 requests-oauthlib===2.0.0
-oslo.reports===3.6.0
+oslo.reports===3.7.0
 pysnmp-lextudio===6.1.2
 bitmath===1.3.3.1
 ceilometermiddleware===3.9.0
@@ -378,7 +378,7 @@ seqdiag===3.0.0
 numpy===2.2.6
 msgpack===1.1.2
 Sphinx===8.1.3
-oslo.config===10.1.0
+oslo.config===10.2.0
 openstackdocstheme===3.5.0
 osc-placement===4.7.0
 rpds-py===0.28.0
@@ -408,7 +408,7 @@ blinker===1.9.0
 aenum===3.1.16
 WSME===0.12.1
 tomli===2.3.0
-oslo.upgradecheck===2.6.0
+oslo.upgradecheck===2.7.0
 sherlock===0.4.1
 stevedore===5.6.0
 botocore===1.35.99
@@ -423,7 +423,7 @@ redis===7.0.0
 jmespath===1.0.1
 click===8.3.0
 XStatic-smart-table===1.4.13.2
-kuryr-lib===3.3.1
+kuryr-lib===3.4.0
 jsonpatch===1.33
 libsass===0.23.0
 os-testr===3.0.0
@@ -431,7 +431,7 @@ cotyledon===2.2.0
 xattr===1.3.0
 systemd-python===235
 python-memcached===1.62
-openstacksdk===4.8.0
+openstacksdk===4.9.0
 infi.dtypes.nqn===0.1.0
 six===1.17.0
 h2===4.3.0
@@ -456,7 +456,7 @@ XStatic===1.0.3
 XStatic-Angular-FileUpload===12.2.13.0
 python-openstackclient===8.3.0
 pyzmq===27.1.0
-oslo.db===17.4.0
+oslo.db===18.0.0
 simplegeneric===0.8.1
 python-pcre===0.7
 yappi===1.7.3
@@ -492,7 +492,7 @@ netifaces===0.11.0
 cachetools===6.2.1
 flexcache===0.3
 sphinxcontrib-qthelp===2.0.0
-keystoneauth1===5.12.0
+keystoneauth1===5.13.0
 statsd===4.0.1
 proto-plus===1.26.1
 python-keystoneclient===5.7.0
@@ -544,7 +544,7 @@ sortedcontainers===2.4.0
 python-linstor===1.25.3
 filelock===3.20.0
 python-tackerclient===2.4.0
-python-heatclient===4.3.0
+python-heatclient===5.0.0
 oslo.utils===9.2.0
 requests-kerberos===0.15.0
 itsdangerous===2.2.0

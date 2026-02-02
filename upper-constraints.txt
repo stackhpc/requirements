@@ -26,7 +26,7 @@ sphinxcontrib-actdiag===3.0.0
 pecan===1.7.0
 os-api-ref===3.1.0
 python-ldap===3.4.5
-oslo.concurrency===7.2.0
+oslo.concurrency===7.3.0
 websocket-client===1.9.0
 osprofiler===4.3.0
 os-resource-classes===1.1.0
@@ -450,7 +450,7 @@ tomlkit===0.13.3
 etcd3gw===2.5.0
 Flask-RESTful===0.3.10
 GitPython===3.1.45
-python-ironicclient===5.14.0
+python-ironicclient===5.15.0
 babel===2.17.0
 XStatic===1.0.3
 XStatic-Angular-FileUpload===12.2.13.0

@@ -58,7 +58,7 @@ oslo.context===6.3.0
 rcssmin===1.2.2
 pycadf===4.0.1
 grpcio===1.78.1
-fixtures===4.3.0
+fixtures===4.3.1
 neutron-lib===3.24.0
 XStatic-FileSaver===1.3.2.1
 jaraco.functools===4.4.0
@@ -67,7 +67,7 @@ storage-interfaces===1.0.5
 pydantic===2.12.5
 persist-queue===1.1.0
 pystache===0.6.8
-XStatic-Font-Awesome===4.7.0.0
+XStatic-Font-Awesome===6.2.1.2
 nose===1.3.7
 waitress===3.0.2
 os-refresh-config===14.0.1
@@ -111,7 +111,7 @@ debtcollector===3.0.0
 responses===0.26.0
 backports.strenum===1.3.1;python_version=='3.10'
 croniter===6.0.0
-horizon===25.5.1
+horizon===25.6.0
 octavia-lib===3.11.0
 python-watcherclient===4.10.0
 MarkupSafe===3.0.3
@@ -166,7 +166,7 @@ graphviz===0.21
 PyKMIP===0.10.0
 python-observabilityclient===1.3.0
 whereto===0.5.0
-networking-generic-switch===8.0.0
+networking-generic-switch===9.0.0
 pywbem===1.7.3
 python-subunit===1.4.5
 pycparser===3.0
@@ -240,7 +240,7 @@ ldappool===3.0.0
 hpack===4.1.0
 joblib===1.5.3
 google-api-python-client===2.190.0
-castellan===5.5.0
+castellan===5.6.0
 oslo.versionedobjects===3.9.0
 enmerkar===0.7.1
 webcolors===25.10.0
@@ -279,7 +279,7 @@ docutils===0.21.2
 threadpoolctl===3.6.0
 os-ken===4.1.1
 ujson===5.11.0
-selenium===3.141.0
+selenium===4.41.0
 pytest-subtests===0.15.0
 mistral-lib===3.5.1
 dogtag-pki===11.2.1
@@ -332,12 +332,12 @@ asgiref===3.11.1
 XStatic-JQuery.TableSorter===2.14.5.3
 pifpaf===3.4.0
 blockdiag===3.0.0
-testtools===2.8.4
+testtools===2.8.5
 infi.dtypes.iqn===0.4.0
 jsonpath-ng===1.7.0
 XStatic-tv4===1.2.7.1
 XStatic-JSEncrypt===2.3.1.2
-python-cinderclient===9.8.0
+python-cinderclient===9.9.0
 keystonemiddleware===12.0.0
 django-formtools===2.5.1
 XStatic-Spin===1.2.5.3

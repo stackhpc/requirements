@@ -179,7 +179,7 @@ cryptography===43.0.3
 httpcore===1.0.9
 URLObject===3.0.0
 psycopg2-binary===2.9.12
-glance_store===5.4.0
+glance_store===5.5.0
 openstack-release-test===8.4.0
 requests-mock===1.12.1
 os-apply-config===14.0.1
@@ -273,7 +273,7 @@ oslo.log===8.2.0
 nodeenv===1.10.0
 gossip===2.5.0
 suds-community===1.2.0
-os_vif===4.3.0
+os_vif===5.0.0
 qrcode===8.2
 oslo.middleware===8.1.0
 XStatic-mdi===1.6.50.3
@@ -359,7 +359,7 @@ protobuf===6.33.6
 sushy===5.11.0
 python-neutronclient===12.0.0
 pika===1.4.0
-oslo.cache===4.1.1
+oslo.cache===4.2.0
 WebTest===3.0.7
 os-collect-config===14.0.1
 edgegrid-python===2.0.6

@@ -18,7 +18,6 @@
 import argparse
 import contextlib
 import os
-import re
 import shlex
 import shutil
 import subprocess
@@ -28,9 +27,6 @@ import tempfile
 from openstack_requirements import check  # noqa
 from openstack_requirements import project  # noqa
 from openstack_requirements import requirement  # noqa
-
-
-PYTHON_3_BRANCH = re.compile(r'^stable\/[u-z].*')
 
 
 def run_command(cmd):
@@ -130,6 +126,14 @@ def main():
             backports = {}
 
         cwd = os.getcwd()
+
+        # Verify that pyproject.toml is present and contains the required
+        # attributes. We only do this on master since we don't want to be
+        # strict on already released branches
+        pyproject_found = None
+        if branch in ('master', 'main'):
+            pyproject_found = project.verify_pyproject_toml(cwd)
+
         # build a list of requirements in the proposed change,
         # and check them for style violations while doing so
         head_proj = project.read(cwd)
@@ -144,21 +148,23 @@ def main():
         #    either.
         head_strict = not branch.startswith('stable/')
         head_reqs.process(strict=head_strict)
-        # Starting with Ussuri and later, we only need to be strict about
-        # Python 3 requirements.
-        python_3_branch = head_strict or PYTHON_3_BRANCH.match(branch)
 
         failed = check.validate(
             head_reqs,
             denylist,
             global_reqs,
             list(backports.keys()),
-            allow_3_only=python_3_branch,
         )
 
     # report the results
+    error = False
     if failed or head_reqs.failed:
         print("*** Incompatible requirement found!")
+        error = True
+    if pyproject_found is False:
+        print("*** Invalid or missing pyproject.toml!")
+        error = True
+    if error:
         print("*** See https://docs.openstack.org/requirements/latest/")
         sys.exit(1)
 

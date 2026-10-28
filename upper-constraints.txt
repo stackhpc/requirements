@@ -493,7 +493,7 @@ keystoneauth1===5.13.1
 statsd===4.0.1
 proto-plus===1.27.1
 python-keystoneclient===5.8.0
-diskimage-builder===3.40.2
+diskimage-builder@git+https://github.com/stackhpc/diskimage-builder@bd72bd1fb9b8fc08f2b86c4b410f0b56842c85d4
 heat-translator===3.4.0
 python-magnumclient===4.10.0
 docker===7.1.0

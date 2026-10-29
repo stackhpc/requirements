@@ -521,7 +521,7 @@ statsd===3.3.0
 XenAPI===2.14
 python-keystoneclient===5.1.0
 ceilometer===20.0.0
-diskimage-builder===3.25.0
+diskimage-builder@git+https://github.com/stackhpc/diskimage-builder@e91eac65baa3b6917ebd5af04b4358aec09ab48e
 heat-translator===2.7.0
 python-magnumclient===4.1.0
 docker===6.0.0

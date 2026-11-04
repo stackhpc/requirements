@@ -10,6 +10,7 @@ flake8-import-order
 flake8-logging-format
 hacking
 isort
+librt
 mccabe
 mypy
 pep257
@@ -20,7 +21,22 @@ pycodestyle
 pylint
 yamllint
 
-# The following Neutron libraries need to be blacklisted
+# type stub packages - these do not affect runtime and are effectively only
+# for linting
+types-decorator
+types-Jinja2
+types-jmespath
+types-jsonschema
+types-paramiko
+types-psutil
+types-python-dateutil
+types-PyYAML
+types-requests
+types-setuptools
+types-simplejson
+types-urllib3
+
+# The following Neutron libraries need to be denylisted
 # as they do not use cycle-with-intermediary.  The only time they
 # would be updated is at release time.
 networking-bagpipe
@@ -33,14 +49,14 @@ neutron-dynamic-routing
 neutron-fwaas
 neutron-lbaas
 neutron-vpnaas
-vmware-nsxlib
+tap-as-a-service
 
-# Sahara uses cycle-with-rc, but it promises a stable plugin interface
-sahara
-
-# Projects are free to specify their own version of ansible
+# Projects are free to specify their own version of ansible and molecule
 ansible
+ansible-compat
 ansible-core
+molecule
+molecule-plugins
 
 # Tempest and its plugins are branchless which means master version of these
 # tools are used in testing the master + stable branches (except EM stable branch
@@ -50,6 +66,30 @@ ansible-core
 # Once any stable branch move to 'Extended Maintenance' and we pin the
 # older Tempest to test them then we can move it from here to u-c file.
 tempest
+barbican_tempest_plugin
+blazar_tempest_plugin
+cinder_tempest-plugin
+cloudkitty_tempest_plugin
+cyborg_tempest-plugin
+designate_tempest-plugin
+freezer_tempest_plugin
+glance_tempest-plugin
+heat_tempest-plugin
+ironic_tempest-plugin
+keystone_tempest_plugin
+magnum_tempest_plugin
+manila_tempest-plugin
+mistral_tempest_tests
+neutron_tempest-plugin
+octavia_tempest-plugin
+telemetry_tempest_plugin
+trove_tempest_plugin
+venus_tempest-plugin
+vitrage_tempest-plugin
+watcher_tempest-plugin
+whitebox_tempest-plugin
+zaqar_tempest_plugin
+zun_tempest-plugin
 
 # annoying from setuptools
 pkg_resources

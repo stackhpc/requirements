@@ -10,9 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-"""Check to see if a package from a project's requrements file exist in g-r or
-u-c.
+"""Check for a package dependency.
 
+Check to see if a package from a project's dependencies exists in g-r or u-c.
 """
 
 import argparse
@@ -30,45 +30,62 @@ def main(args=None):
     parser.add_argument(
         'project',
         default='',
-        help='path to the project source root folder.')
+        help='path to the project source root folder.',
+    )
     parser.add_argument(
-        '-u', '--upper-constraints',
+        '-u',
+        '--upper-constraints',
         default='upper-constraints.txt',
-        help='path to the upper-constraints.txt file')
+        help='path to the upper-constraints.txt file',
+    )
     parser.add_argument(
-        '-g', '--global-requirements',
+        '-g',
+        '--global-requirements',
         default='global-requirements.txt',
-        help='Path to the global-requirements.txt file')
+        help='Path to the global-requirements.txt file',
+    )
     parser.add_argument(
-        '-b', '--blacklist',
-        default='blacklist.txt',
-        help='Path to the blacklist.txt file')
+        '-b',
+        '-d',
+        '--denylist',
+        default='denylist.txt',
+        help='Path to the denylist.txt file',
+    )
     parser.add_argument(
-        '-G', '--gr-check', action='store_true',
-        help='Do a specifier check of global-requirements')
+        '-G',
+        '--gr-check',
+        action='store_true',
+        help='Do a specifier check of global-requirements',
+    )
     args = parser.parse_args(args)
 
     upper_constraints = read_requirements_file(args.upper_constraints)
     global_requirements = read_requirements_file(args.global_requirements)
-    blacklist = read_requirements_file(args.blacklist)
+    denylist = read_requirements_file(args.denylist)
     project_data = project.read(args.project)
     error_count = 0
 
     for require_file, data in project_data.get('requirements', {}).items():
-        print(u'\nComparing %s with global-requirements and upper-constraints'
-              % require_file)
-        requirements = requirement.parse(data)
+        print(
+            f'\nComparing {require_file} with global-requirements and '
+            f'upper-constraints'
+        )
+        requirements = requirement.parse_lines(data)
         for name, spec_list in requirements.items():
-            if not name or name in blacklist:
+            if not name or name in denylist:
                 continue
             if name not in global_requirements:
-                print(u'%s from %s not found in global-requirements' % (
-                      name, require_file))
+                print(
+                    f'{name} from {require_file} not found in '
+                    f'global-requirements'
+                )
                 error_count += 1
                 continue
             if name not in upper_constraints:
-                print(u'%s from %s not found in upper-constraints' % (
-                      name, require_file))
+                print(
+                    f'{name} from {require_file} not found in '
+                    f'upper-constraints'
+                )
                 error_count += 1
                 continue
             elif spec_list:
@@ -83,9 +100,10 @@ def main(args=None):
                         # then something is wrong.
                         if Version(uc_spec.version) not in specs:
                             print(
-                                u'%s must be <= %s from upper-constraints and '
-                                'include the upper-constraints version' %
-                                (name, uc_spec.version))
+                                f'{name} must be <= {uc_spec.version} from '
+                                f'upper-constraints and include the '
+                                f'upper-constraints version'
+                            )
                             error_count += 1
                             continue
                     if args.gr_check:
@@ -97,9 +115,10 @@ def main(args=None):
                                 continue
                             if spec.version not in spec_gr:
                                 print(
-                                    u'Specifier %s from %s is failing check '
-                                    'from global-requirements specifiers %s' %
-                                    (spec.version, name, str(spec_gr)))
+                                    f'Specifier {spec.version} from {name} is '
+                                    f'failing check from global-requirements '
+                                    f'specifiers {spec_gr!s}'
+                                )
                                 error_count += 1
                                 continue
 

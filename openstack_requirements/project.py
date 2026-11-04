@@ -15,175 +15,233 @@
 
 """The project abstraction."""
 
-import collections
 import configparser
 import errno
 import io
 import os
-
-from parsley import makeGrammar
-
-from openstack_requirements import requirement
-
-# PURE logic from here until the IO marker below.
+import sys
+import tomllib
+from typing import Any
+from typing import TypedDict
 
 
-_Comment = collections.namedtuple('Comment', ['line'])
-_Extra = collections.namedtuple('Extra', ['name', 'content'])
-
-
-_extras_grammar = """
-ini = (line*:p extras?:e line*:l final:s) -> (''.join(p), e, ''.join(l+[s]))
-line = ~extras <(~'\\n' anything)* '\\n'>
-final = <(~'\\n' anything)* >
-extras = '[' 'e' 'x' 't' 'r' 'a' 's' ']' '\\n'+ body*:b -> b
-body = comment | extra
-comment = <'#' (~'\\n' anything)* '\\n'>:c '\\n'* -> comment(c)
-extra = name:n ' '* '=' line:l cont*:c '\\n'* -> extra(n, ''.join([l] + c))
-name = <(anything:x ?(x not in '\\n \\t='))+>
-cont = ' '+ <(~'\\n' anything)* '\\n'>
-"""
-_extras_compiled = makeGrammar(
-    _extras_grammar, {"comment": _Comment, "extra": _Extra})
-
-
-Error = collections.namedtuple('Error', ['message'])
-File = collections.namedtuple('File', ['filename', 'content'])
-StdOut = collections.namedtuple('StdOut', ['message'])
-Verbose = collections.namedtuple('Verbose', ['message'])
-
-
-def extras(project):
-    """Return a dict of extra-name:content for the extras in setup.cfg."""
-    if 'setup.cfg' not in project:
-        return {}
-    c = configparser.ConfigParser()
-    c.read_file(io.StringIO(project['setup.cfg']))
-    if not c.has_section('extras'):
-        return {}
-    return dict(c.items('extras'))
-
-
-def merge_setup_cfg(old_content, new_extras):
-    # This is ugly. All the existing libraries handle setup.cfg's poorly.
-    prefix, extras, suffix = _extras_compiled(old_content).ini()
-    out_extras = []
-    if extras is not None:
-        for extra in extras:
-            if type(extra) is _Comment:
-                out_extras.append(extra)
-            elif type(extra) is _Extra:
-                if extra.name not in new_extras:
-                    out_extras.append(extra)
-                    continue
-                e = _Extra(
-                    extra.name,
-                    requirement.to_content(
-                        new_extras[extra.name], ':', '  ', False))
-                out_extras.append(e)
-            else:
-                raise TypeError('unknown type %r' % extra)
-    if out_extras:
-        extras_str = ['[extras]\n']
-        for extra in out_extras:
-            if type(extra) is _Comment:
-                extras_str.append(extra.line)
-            else:
-                extras_str.append(extra.name + ' =')
-                extras_str.append(extra.content)
-        if suffix:
-            extras_str.append('\n')
-        extras_str = ''.join(extras_str)
-    else:
-        extras_str = ''
-    return prefix + extras_str + suffix
-
-
-# IO from here to the end of the file.
-
-def _safe_read(project, filename, output=None):
-    if output is None:
-        output = project
+def _read_raw(root: str, filename: str) -> str | None:
     try:
-        path = os.path.join(project['root'], filename)
-        with io.open(path, 'rt', encoding="utf-8") as f:
-            output[filename] = f.read()
-    except IOError as e:
-        if e.errno != errno.ENOENT:
-            raise
+        path = os.path.join(root, filename)
+        with open(path, encoding="utf-8") as f:
+            data = f.read()
+            if not data.endswith('\n'):
+                print(
+                    f"Requirements file {filename} does not end with a "
+                    f"newline.",
+                    file=sys.stderr,
+                )
+            return data
+    except OSError as e:
+        if e.errno == errno.ENOENT:
+            return None
+
+        raise
 
 
-def read(root):
+def _read_pyproject_toml(root: str) -> dict[str, Any] | None:
+    data = _read_raw(root, 'pyproject.toml')
+    if data is None:
+        return None
+
+    return tomllib.loads(data)
+
+
+def _read_requirements_txt(root: str, filename: str) -> list[str] | None:
+    data = _read_raw(root, filename)
+    if data is None:
+        return None
+
+    result = []
+    for line in data.splitlines():
+        # we only ignore comments and empty lines: everything else is
+        # handled later
+        line = line.strip()
+
+        if line.startswith('#') or not line:
+            continue
+
+        result.append(line)
+
+    return result
+
+
+def _read_pyproject_toml_requirements(root: str) -> list[str] | None:
+    data = _read_pyproject_toml(root) or {}
+
+    # projects may not have PEP-621 project metadata
+    if 'project' not in data:
+        return None
+
+    return data['project'].get('dependencies', [])
+
+
+def _read_pyproject_toml_extras(root: str) -> dict[str, list[str]] | None:
+    data = _read_pyproject_toml(root) or {}
+
+    # projects may not have PEP-621 project metadata
+    if 'project' not in data:
+        return None
+
+    return data['project'].get('optional-dependencies', {})
+
+
+def _read_pyproject_toml_dependency_groups(
+    root: str,
+) -> dict[str, list[str]] | None:
+    data = _read_pyproject_toml(root) or {}
+
+    if 'dependency-groups' not in data:
+        return None
+
+    raw_groups: dict[str, list[str | dict[str, str]]] = data[
+        'dependency-groups'
+    ]
+
+    def resolve(name: str) -> list[str]:
+        result = []
+        for item in raw_groups[name]:
+            if isinstance(item, dict):
+                assert len(item) == 1
+                assert 'include-group' in item
+                assert item['include-group'] != name
+                result.extend(resolve(item['include-group']))
+            elif isinstance(item, str):
+                result.append(item)
+            else:
+                raise Exception(
+                    f'dependency-groups items must be string requirements '
+                    f'or includes in form {{include-group = "group-a"}}; '
+                    f'got: {item}'
+                )
+        return result
+
+    return {name: resolve(name) for name in raw_groups}
+
+
+def _read_setup_cfg_extras(root: str) -> dict[str, list[str]] | None:
+    data = _read_raw(root, 'setup.cfg')
+    if data is None:
+        return None
+
+    c = configparser.ConfigParser()
+    c.read_file(io.StringIO(data))
+    if not c.has_section('extras'):
+        return None
+
+    result: dict[str, list[str]] = {}
+    for extra, deps in c.items('extras'):
+        result[extra] = []
+        for line in deps.splitlines():
+            # we only ignore comments and empty lines: everything else is
+            # handled later
+            line = line.strip()
+
+            if line.startswith('#') or not line:
+                continue
+
+            result[extra].append(line)
+
+    return result
+
+
+def verify_pyproject_toml(root: str) -> bool:
+    data = _read_pyproject_toml(root)
+
+    if data is None:
+        print('Missing pyproject.toml file', file=sys.stderr)
+        return False
+
+    if 'build-system' not in data:
+        print(
+            "pyproject.toml is missing 'build-system' table", file=sys.stderr
+        )
+        return False
+
+    if (
+        build_backend := data['build-system'].get('build-backend')
+    ) != 'pbr.build':
+        print(
+            f"pyproject.toml has invalid 'build-system.build-backend'. "
+            f"Expected 'pbr.build'; got {build_backend!r}",
+            file=sys.stderr,
+        )
+        return False
+
+    if 'project' not in data:
+        print(
+            "pyproject.toml is missing 'project' table. This is not currently "
+            "an error but may be in the future",
+            file=sys.stderr,
+        )
+
+    return True
+
+
+class Project(TypedDict):
+    # The root directory path
+    root: str
+    # A mapping of filename to the contents of that file
+    requirements: dict[str, list[str]]
+    # A mapping of filename to extras from that file
+    extras: dict[str, dict[str, list[str]]]
+    # A mapping of filename to dependency groups from that file
+    dependency_groups: dict[str, dict[str, list[str]]]
+
+
+def read(root: str) -> Project:
     """Read into memory the packaging data for the project at root.
 
     :param root: A directory path.
     :return: A dict representing the project with the following keys:
         - root: The root dir.
-        - setup.py: Contents of setup.py.
-        - setup.cfg: Contents of setup.cfg.
-        - requirements: Dict of requirement file name: contents.
+        - requirements: Dict of filenames mapped to requirements
+        - extras: Dict of filenames mapped to a dict of extra names and
+          their requirements
+        - dependency_groups: Dict of filenames mapped to a dict of dependency
+          group names and their requirements
     """
-    result = {'root': root}
-    _safe_read(result, 'setup.py')
-    _safe_read(result, 'setup.cfg')
-    requirements = {}
-    result['requirements'] = requirements
-    target_files = [
-        'requirements.txt', 'tools/pip-requires',
-        'test-requirements.txt', 'tools/test-requires',
+    # Store root directory and installer-related files for later processing
+    result: Project = {
+        'root': root,
+        'requirements': {},
+        'extras': {},
+        'dependency_groups': {},
+    }
+
+    # Store requirements
+    if (data := _read_pyproject_toml_requirements(root)) is not None:
+        result['requirements']['pyproject.toml'] = data
+
+    for filename in [
+        'requirements.txt',
+        'test-requirements.txt',
         'doc/requirements.txt',
-    ]
-    for py_version in (2, 3):
-        target_files.append('requirements-py%s.txt' % py_version)
-        target_files.append('test-requirements-py%s.txt' % py_version)
-    for target_file in target_files:
-        _safe_read(result, target_file, output=requirements)
-    # Read lower-constraints.txt and ensure the key is always present
-    # in case the file is missing.
-    result['lower-constraints.txt'] = None
-    _safe_read(result, 'lower-constraints.txt')
+        # deprecated aliases (warnings are handled elsewhere)
+        'tools/pip-requires',
+        'tools/test-requires',
+        'requirements-py2.txt',
+        'requirements-py3.txt',
+        'test-requirements-py2.txt',
+        'test-requirements-py3.txt',
+    ]:
+        if (data := _read_requirements_txt(root, filename)) is not None:
+            result['requirements'][filename] = data
+
+    # Store extras
+    if (data := _read_setup_cfg_extras(root)) is not None:
+        result['extras']['setup.cfg'] = data
+
+    if (data := _read_pyproject_toml_extras(root)) is not None:
+        result['extras']['pyproject.toml'] = data
+
+    # Store dependency groups
+    if (data := _read_pyproject_toml_dependency_groups(root)) is not None:
+        result['dependency_groups']['pyproject.toml'] = data
+
     return result
-
-
-def write(project, actions, stdout, verbose, noop=False):
-    """Write actions into project.
-
-    :param project: A project metadata dict.
-    :param actions: A list of action tuples - File or Verbose - that describe
-        what actions are to be taken.
-        Error objects write a message to stdout and trigger an exception at
-            the end of _write_project.
-        File objects describe a file to have content placed in it.
-        StdOut objects describe a message to write to stdout.
-        Verbose objects will write a message to stdout when verbose is True.
-    :param stdout: Where to write content for stdout.
-    :param verbose: If True Verbose actions will be written to stdout.
-    :param noop: If True nothing will be written to disk.
-    :return None:
-    :raises IOError: If the IO operations fail, IOError is raised. If this
-        happens some actions may have been applied and others not.
-    """
-    error = False
-    for action in actions:
-        if type(action) is Error:
-            error = True
-            stdout.write(action.message + '\n')
-        elif type(action) is File:
-            if noop:
-                continue
-            fullname = os.path.join(project['root'], action.filename)
-            tmpname = fullname + '.tmp'
-            with open(tmpname, 'wt') as f:
-                f.write(action.content)
-            if os.path.exists(fullname):
-                os.remove(fullname)
-            os.rename(tmpname, fullname)
-        elif type(action) is StdOut:
-            stdout.write(action.message)
-        elif type(action) is Verbose:
-            if verbose:
-                stdout.write(u"%s\n" % (action.message,))
-        else:
-            raise Exception("Invalid action %r" % (action,))
-    if error:
-        raise Exception("Error occurred processing %s" % (project['root']))

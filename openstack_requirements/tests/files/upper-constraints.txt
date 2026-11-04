@@ -6,7 +6,6 @@ restructuredtext-lint===1.0.1
 netmiko===1.2.8
 PasteDeploy===1.5.2
 typing===3.5.3.0
-python-saharaclient===1.1.0
 Routes===2.4.1
 rtslib-fb===2.1.63
 smmap===0.9.0
@@ -30,7 +29,6 @@ oslo.service===1.20.0
 django-appconf===1.0.2
 pykerberos===1.1.14
 certifi===2017.1.23
-requests-aws===0.1.8
 alabaster===0.7.10
 pbr===2.0.0
 microversion-parse===0.1.4
@@ -39,7 +37,6 @@ oslo.i18n===3.13.0
 jsonpath-rw-ext===1.1.1
 python-mistralclient===3.0.0
 oslo.context===2.13.0
-python-senlinclient===1.2.0
 rcssmin===1.0.6
 pycadf===2.5.0
 pysendfile===2.0.1
@@ -185,8 +182,6 @@ appdirs===1.4.3
 tinyrpc===0.5
 influxdb===4.0.0
 funcparserlib===0.3.6
-passlib===1.7.1
-dib-utils===0.0.11
 cliff===2.4.0
 os-brick===1.11.0
 trollius===2.1
@@ -247,7 +242,6 @@ singledispatch===3.4.0.3;python_version=='2.7'
 oslo.serialization===2.17.0
 warlock===1.2.0
 sphinxcontrib-httpdomain===1.5.0
-murano-pkg-check===0.3.0
 oslo.vmware===2.18.0
 sqlalchemy-migrate===0.11.0
 gitdb===0.6.4
@@ -318,7 +312,6 @@ django-floppyforms===1.7.0
 openstackdocstheme===1.6.1
 progressbar2===3.12.0
 zake===0.2.2
-python-solumclient===2.2.0
 PyMySQL===0.7.10
 kubernetes===1.0.0
 httplib2===0.10.3
@@ -350,7 +343,6 @@ click===6.7
 docker-pycreds===0.2.1
 XStatic-smart-table===1.4.13.2
 kuryr-lib===0.3.0
-scrypt===0.8.0
 jsonpatch===1.15
 typed-ast===1.0.2;python_version=='3.4'
 typed-ast===1.0.2;python_version=='3.5'
@@ -387,7 +379,6 @@ wrapt===1.10.8
 oslo.privsep===1.17.0
 zope.interface===4.3.3
 oslo.policy===1.19.0
-python-muranoclient===0.12.0
 pyeclib===1.4.0
 wsgi-intercept===1.5.0
 ndg-httpsclient===0.4.2;python_version=='2.7'

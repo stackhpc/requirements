@@ -10,274 +10,241 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import io
+from io import StringIO
+import os
 import textwrap
 
 import fixtures
-import parsley
-import testscenarios
 import testtools
-from testtools import matchers
 
 from openstack_requirements import project
-from openstack_requirements import requirement
 from openstack_requirements.tests import common
 
 
-load_tests = testscenarios.load_tests_apply_scenarios
-
-
 class TestReadProject(testtools.TestCase):
+    def test_pyproject_toml(self):
+        root = self.useFixture(common.pep_518_fixture).root
+        proj = project.read(root)
+        self.assertEqual(root, proj['root'])
+        self.assertEqual(
+            ['pyproject.toml'],
+            list(sorted(proj['requirements'])),
+        )
 
-    def test_pbr(self):
+    def test_setup_cfg(self):
         root = self.useFixture(common.pbr_fixture).root
         proj = project.read(root)
-        self.expectThat(proj['root'], matchers.Equals(root))
-        setup_py = open(root + '/setup.py', 'rt').read()
-        self.expectThat(proj['setup.py'], matchers.Equals(setup_py))
-        setup_cfg = open(root + '/setup.cfg', 'rt').read()
-        self.expectThat(proj['setup.cfg'], matchers.Equals(setup_cfg))
-        self.expectThat(
-            proj['requirements'],
-            matchers.KeysEqual('requirements.txt', 'test-requirements.txt'))
+        self.assertEqual(root, proj['root'])
+        self.assertEqual(
+            ['requirements.txt', 'test-requirements.txt'],
+            list(sorted(proj['requirements'])),
+        )
 
-    def test_no_setup_py(self):
+    def test_empty(self):
         root = self.useFixture(fixtures.TempDir()).path
         proj = project.read(root)
-        self.expectThat(
-            proj, matchers.Equals({'root': root, 'requirements': {},
-                                   'lower-constraints.txt': None}))
+        self.assertEqual(
+            {
+                'root': root,
+                'requirements': {},
+                'extras': {},
+                'dependency_groups': {},
+            },
+            proj,
+        )
+
+
+class TestVerifyPyprojectToml(testtools.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.stderr = StringIO()
+        self.useFixture(fixtures.MonkeyPatch('sys.stderr', self.stderr))
+
+    def test_valid(self):
+        root = self.useFixture(common.pep_518_fixture).root
+        self.assertTrue(project.verify_pyproject_toml(root))
+        self.assertEqual('', self.stderr.getvalue())
+
+    def test_missing_file(self):
+        root = self.useFixture(fixtures.TempDir()).path
+        self.assertFalse(project.verify_pyproject_toml(root))
+        self.assertEqual(
+            'Missing pyproject.toml file\n', self.stderr.getvalue()
+        )
+
+    def test_missing_build_system(self):
+        root = self.useFixture(fixtures.TempDir()).path
+        with open(os.path.join(root, 'pyproject.toml'), 'w') as fh:
+            fh.write(
+                textwrap.dedent("""
+                [project]
+                name = "foo"
+                """)
+            )
+        self.assertFalse(project.verify_pyproject_toml(root))
+        self.assertIn(
+            "pyproject.toml is missing 'build-system' table",
+            self.stderr.getvalue(),
+        )
+
+    def test_invalid_build_backend(self):
+        root = self.useFixture(fixtures.TempDir()).path
+        with open(os.path.join(root, 'pyproject.toml'), 'w') as fh:
+            fh.write(
+                textwrap.dedent("""
+                [build-system]
+                requires = ["setuptools"]
+                build-backend = "setuptools.build_meta"
+                """)
+            )
+        self.assertFalse(project.verify_pyproject_toml(root))
+        self.assertIn(
+            "pyproject.toml has invalid 'build-system.build-backend'. "
+            "Expected 'pbr.build'; got 'setuptools.build_meta'",
+            self.stderr.getvalue(),
+        )
+
+    def test_missing_project_table(self):
+        root = self.useFixture(fixtures.TempDir()).path
+        with open(os.path.join(root, 'pyproject.toml'), 'w') as fh:
+            fh.write(
+                textwrap.dedent("""
+                [build-system]
+                requires = ["pbr>=6.0.0", "setuptools>=64.0.0"]
+                build-backend = "pbr.build"
+                """)
+            )
+        self.assertTrue(project.verify_pyproject_toml(root))
+        self.assertIn(
+            "pyproject.toml is missing 'project' table",
+            self.stderr.getvalue(),
+        )
 
 
 class TestProjectExtras(testtools.TestCase):
+    def test_pyproject_toml(self):
+        root = self.useFixture(fixtures.TempDir()).path
+        with open(os.path.join(root, 'pyproject.toml'), 'w') as fh:
+            fh.write(
+                textwrap.dedent("""
+                [project.optional-dependencies]
+                1 = [
+                  "foo",
+                ]
+                2 = [
+                  "foo", # fred
+                  "bar",
+                ]
+                """)
+            )
+        expected = {'1': ['foo'], '2': ['foo', 'bar']}
+        self.assertEqual(expected, project._read_pyproject_toml_extras(root))
 
-    def test_smoke(self):
-        proj = {'setup.cfg': textwrap.dedent(u"""
-            [extras]
-            1 =
-              foo
-            2 =
-              foo # fred
-              bar
-            """)}
-        expected = {
-            '1': '\nfoo',
-            '2': '\nfoo # fred\nbar'
-        }
-        self.assertEqual(expected, project.extras(proj))
+    def test_pyproject_toml__no_extras(self):
+        root = self.useFixture(fixtures.TempDir()).path
+        with open(os.path.join(root, 'pyproject.toml'), 'w') as fh:
+            fh.write(
+                textwrap.dedent("""
+                """)
+            )
+        self.assertIsNone(project._read_pyproject_toml_extras(root))
 
-    def test_none(self):
-        proj = {'setup.cfg': u"[metadata]\n"}
-        self.assertEqual({}, project.extras(proj))
+    def test_no_pyproject_toml(self):
+        root = self.useFixture(fixtures.TempDir()).path
+        self.assertIsNone(project._read_pyproject_toml_extras(root))
+
+    def test_setup_cfg(self):
+        root = self.useFixture(fixtures.TempDir()).path
+        with open(os.path.join(root, 'setup.cfg'), 'w') as fh:
+            fh.write(
+                textwrap.dedent("""
+                [extras]
+                1 =
+                  foo
+                2 =
+                  foo # fred
+                  bar
+                """)
+            )
+        expected = {'1': ['foo'], '2': ['foo # fred', 'bar']}
+        self.assertEqual(expected, project._read_setup_cfg_extras(root))
+
+    def test_setup_cfg__no_extras(self):
+        root = self.useFixture(fixtures.TempDir()).path
+        with open(os.path.join(root, 'setup.cfg'), 'w') as fh:
+            fh.write(
+                textwrap.dedent("""
+                [metadata]
+                name = foo
+                """)
+            )
+        self.assertIsNone(project._read_setup_cfg_extras(root))
 
     def test_no_setup_cfg(self):
-        proj = {}
-        self.assertEqual({}, project.extras(proj))
-
-
-class TestExtrasParsing(testtools.TestCase):
-
-    def test_none(self):
-        old_content = textwrap.dedent(u"""
-            [metadata]
-            # something something
-            name = fred
-
-            [entry_points]
-            console_scripts =
-                foo = bar:quux
-            """)
-        ini = project._extras_compiled(old_content).ini()
-        self.assertEqual(ini, (old_content, None, ''))
-
-    def test_no_eol(self):
-        old_content = textwrap.dedent(u"""
-            [metadata]
-            # something something
-            name = fred
-
-            [entry_points]
-            console_scripts =
-                foo = bar:quux""")
-        expected1 = textwrap.dedent(u"""
-            [metadata]
-            # something something
-            name = fred
-
-            [entry_points]
-            console_scripts =
-            """)
-        suffix = '    foo = bar:quux'
-        ini = project._extras_compiled(old_content).ini()
-        self.assertEqual(ini, (expected1, None, suffix))
-
-    def test_two_extras_raises(self):
-        old_content = textwrap.dedent(u"""
-            [metadata]
-            # something something
-            name = fred
-
-            [extras]
-            a = b
-            [extras]
-            b = c
-
-            [entry_points]
-            console_scripts =
-                foo = bar:quux
-            """)
-        with testtools.ExpectedException(parsley.ParseError):
-            project._extras_compiled(old_content).ini()
-
-    def test_extras(self):
-        # We get an AST for extras we can use to preserve comments.
-        old_content = textwrap.dedent(u"""
-            [metadata]
-            # something something
-            name = fred
-
-            [extras]
-            # comment1
-            a =
-             b
-             c
-            # comment2
-            # comment3
-            d =
-             e
-            # comment4
-
-            [entry_points]
-            console_scripts =
-                foo = bar:quux
-            """)
-        prefix = textwrap.dedent(u"""
-            [metadata]
-            # something something
-            name = fred
-
-            """)
-        suffix = textwrap.dedent(u"""\
-            [entry_points]
-            console_scripts =
-                foo = bar:quux
-            """)
-        extras = [
-            project._Comment('# comment1\n'),
-            project._Extra('a', '\nb\nc\n'),
-            project._Comment('# comment2\n'),
-            project._Comment('# comment3\n'),
-            project._Extra('d', '\ne\n'),
-            project._Comment('# comment4\n')]
-        ini = project._extras_compiled(old_content).ini()
-        self.assertEqual(ini, (prefix, extras, suffix))
-
-
-class TestMergeSetupCfg(testtools.TestCase):
-
-    def test_merge_none(self):
-        old_content = textwrap.dedent(u"""
-            [metadata]
-            # something something
-            name = fred
-
-            [entry_points]
-            console_scripts =
-                foo = bar:quux
-            """)
-        merged = project.merge_setup_cfg(old_content, {})
-        self.assertEqual(old_content, merged)
-
-    def test_merge_extras(self):
-        old_content = textwrap.dedent(u"""
-            [metadata]
-            name = fred
-
-            [extras]
-            # Comment
-            a =
-             b
-            # comment
-            c =
-             d
-
-            [entry_points]
-            console_scripts =
-                foo = bar:quux
-            """)
-        blank = requirement.Requirement('', '', '', '', '')
-        r1 = requirement.Requirement(
-            'b', '', '>=1', "python_version=='2.7'", '')
-        r2 = requirement.Requirement('d', '', '', '', '# BSD')
-        reqs = {
-            'a': requirement.Requirements([blank, r1]),
-            'c': requirement.Requirements([blank, r2])}
-        merged = project.merge_setup_cfg(old_content, reqs)
-        expected = textwrap.dedent(u"""
-            [metadata]
-            name = fred
-
-            [extras]
-            # Comment
-            a =
-              b>=1:python_version=='2.7'
-            # comment
-            c =
-              d # BSD
-
-            [entry_points]
-            console_scripts =
-                foo = bar:quux
-            """)
-        self.assertEqual(expected, merged)
-
-
-class TestWriteProject(testtools.TestCase):
-
-    def test_smoke(self):
-        stdout = io.StringIO()
         root = self.useFixture(fixtures.TempDir()).path
-        proj = {'root': root}
-        actions = [
-            project.File('foo', '123\n'),
-            project.File('bar', '456\n'),
-            project.Verbose(u'fred')]
-        project.write(proj, actions, stdout, True)
-        foo = open(root + '/foo', 'rt').read()
-        self.expectThat(foo, matchers.Equals('123\n'))
-        bar = open(root + '/bar', 'rt').read()
-        self.expectThat(bar, matchers.Equals('456\n'))
-        self.expectThat(stdout.getvalue(), matchers.Equals('fred\n'))
+        self.assertIsNone(project._read_setup_cfg_extras(root))
 
-    def test_non_verbose(self):
-        stdout = io.StringIO()
-        root = self.useFixture(fixtures.TempDir()).path
-        proj = {'root': root}
-        actions = [project.Verbose(u'fred')]
-        project.write(proj, actions, stdout, False)
-        self.expectThat(stdout.getvalue(), matchers.Equals(''))
 
-    def test_bad_action(self):
+class TestProjectDependencyGroups(testtools.TestCase):
+    def test_pyproject_toml(self):
         root = self.useFixture(fixtures.TempDir()).path
-        stdout = io.StringIO()
-        proj = {'root': root}
-        actions = [('foo', 'bar')]
-        with testtools.ExpectedException(Exception):
-            project.write(proj, actions, stdout, True)
+        with open(os.path.join(root, 'pyproject.toml'), 'w') as fh:
+            # taken from the spec https://peps.python.org/pep-0735/ but with an
+            # additional group to demonstrate more depth
+            fh.write(
+                textwrap.dedent("""
+                [dependency-groups]
+                test = ["pytest", "coverage"]
+                docs = ["sphinx", "sphinx-rtd-theme"]
+                typing = ["mypy", "types-requests"]
+                typing-test = [
+                    {include-group = "typing"},
+                    {include-group = "test"},
+                    "useful-types"
+                ]
+                dev = [
+                    {include-group = "typing-test"},
+                    {include-group = "docs"},
+                ]
+                """)
+            )
+        expected = {
+            'test': ['pytest', 'coverage'],
+            'docs': ['sphinx', 'sphinx-rtd-theme'],
+            'typing': ['mypy', 'types-requests'],
+            'typing-test': [
+                'mypy',
+                'types-requests',
+                'pytest',
+                'coverage',
+                'useful-types',
+            ],
+            'dev': [
+                'mypy',
+                'types-requests',
+                'pytest',
+                'coverage',
+                'useful-types',
+                'sphinx',
+                'sphinx-rtd-theme',
+            ],
+        }
+        self.assertEqual(
+            expected, project._read_pyproject_toml_dependency_groups(root)
+        )
 
-    def test_stdout(self):
-        stdout = io.StringIO()
+    def test_pyproject_toml__no_dependency_groups(self):
         root = self.useFixture(fixtures.TempDir()).path
-        proj = {'root': root}
-        actions = [project.StdOut(u'fred\n')]
-        project.write(proj, actions, stdout, True)
-        self.expectThat(stdout.getvalue(), matchers.Equals('fred\n'))
+        with open(os.path.join(root, 'pyproject.toml'), 'w') as fh:
+            fh.write(
+                textwrap.dedent("""
+                [project]
+                name = "testproject"
+                dynamic = ["version"]
+                """)
+            )
+        self.assertIsNone(project._read_pyproject_toml_dependency_groups(root))
 
-    def test_errors(self):
-        stdout = io.StringIO()
+    def test_no_pyproject_toml(self):
         root = self.useFixture(fixtures.TempDir()).path
-        proj = {'root': root}
-        actions = [project.Error(u'fred')]
-        with testtools.ExpectedException(Exception):
-            project.write(proj, actions, stdout, True)
-        self.expectThat(stdout.getvalue(), matchers.Equals('fred\n'))
+        self.assertIsNone(project._read_pyproject_toml_dependency_groups(root))

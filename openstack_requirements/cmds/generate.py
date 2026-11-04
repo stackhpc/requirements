@@ -26,6 +26,17 @@ import fixtures
 from openstack_requirements import requirement
 
 
+SECURITY_WARNING = [
+    "# WARNING: OpenStack makes no security guarantees about third-party\n",
+    "# dependencies listed here, and does not keep track of any\n",
+    "# vulnerabilities they contain. Versions of these dependencies are\n",
+    "# frozen at each coordinated release in order to stabilize upstream\n",
+    "# testing, and can contain known vulnerabilities. Consumers are\n",
+    "# *STRONGLY* encouraged to rely on curated distributions of OpenStack\n",
+    "# or manage security patching of dependencies themselves.\n",
+]
+
+
 def _parse_freeze(text):
     """Parse a freeze into structured data.
 
@@ -36,7 +47,7 @@ def _parse_freeze(text):
     for line in text.splitlines():
         line = line.strip()
         if line.startswith('-'):
-            raise Exception("Irregular line: %s" % line)
+            raise Exception(f"Irregular line: {line}")
         if line.startswith('#'):
             continue
         if not line:
@@ -71,31 +82,38 @@ def _freeze(requirements, python):
     output = []
     try:
         version_out = subprocess.check_output(
-            [python, "--version"], stderr=subprocess.STDOUT)
+            [python, "--version"], stderr=subprocess.STDOUT
+        )
         output.append(version_out)
         version_all = version_out.decode('utf-8').split()[1]
         version = '.'.join(version_all.split('.')[:2])
         with fixtures.TempDir() as temp:
-            output.append(subprocess.check_output(
-                [python, '-m', 'venv', temp.path]))
+            output.append(
+                subprocess.check_output([python, '-m', 'venv', temp.path])
+            )
             pip_bin = os.path.join(temp.path, 'bin', 'pip')
-            output.append(subprocess.check_output(
-                [pip_bin, 'install', '-U', 'pip', 'setuptools', 'wheel']))
-            output.append(subprocess.check_output(
-                [pip_bin, 'install', '-r', requirements]))
-            freeze = subprocess.check_output(
-                [pip_bin, 'freeze'])
+            output.append(
+                subprocess.check_output(
+                    [pip_bin, 'install', '-U', 'pip', 'setuptools', 'wheel']
+                )
+            )
+            output.append(
+                subprocess.check_output(
+                    [pip_bin, 'install', '-r', requirements]
+                )
+            )
+            freeze = subprocess.check_output([pip_bin, 'freeze'])
             output.append(freeze)
             return (version, _parse_freeze(freeze.decode('utf-8')))
     except Exception as exc:
         if isinstance(exc, subprocess.CalledProcessError):
             output.append(exc.output)
         raise Exception(
-            "Failed to generate freeze: %s %s" % (
+            "Failed to generate freeze: {} {}".format(
                 b'\n'.join(output).decode('utf-8'),
                 exc,
             )
-        )
+        ) from exc
     finally:
         # log job results
         with tempfile.NamedTemporaryFile(
@@ -108,7 +126,7 @@ def _freeze(requirements, python):
             fh.write(b'\n'.join(output))
 
 
-def _combine_freezes(freezes, blacklist=None):
+def _combine_freezes(freezes, denylist=None):
     """Combine multiple freezes into a single structure.
 
     This deals with the variation between different python versions by
@@ -116,37 +134,53 @@ def _combine_freezes(freezes, blacklist=None):
     versions of a dependency.
 
     :param freezes: A list of (python_version, frozen_requirements) tuples.
-    :param blacklist: An iterable of package names to exclude. These packages
+    :param denylist: An iterable of package names to exclude. These packages
         won't be included in the output.
     :return: A list of '\n' terminated lines for a requirements file.
     """
     packages = {}  # {package : {version : [py_version]}}
-    excludes = frozenset((requirement.canonical_name(s)
-                          for s in blacklist) if blacklist else ())
+    excludes = frozenset(
+        (requirement.canonical_name(s) for s in denylist) if denylist else ()
+    )
     reference_versions = []
     for py_version, freeze in freezes:
         if py_version in reference_versions:
-            raise Exception("Duplicate python %s" % py_version)
+            raise Exception(f"Duplicate python {py_version}")
+
         reference_versions.append(py_version)
         for package, version in freeze:
-            packages.setdefault(
-                package, {}).setdefault(version, []).append(py_version)
+            packages.setdefault(package, {}).setdefault(version, []).append(
+                py_version
+            )
 
     for package, versions in sorted(packages.items()):
         if package.lower() in excludes:
             continue
-        if (len(versions) != 1 or
-                list(versions.values())[0] != reference_versions):
-            # markers
+
+        if len(versions) > 1:
+            # markers for packages with multiple versions - we use python
+            # version ranges for these
+            for idx, (version, py_versions) in enumerate(
+                sorted(versions.items())
+            ):
+                if idx == 0:  # lower-bound
+                    marker = f"python_version<='{py_versions[-1]}'"
+                elif idx + 1 != len(versions):  # intermediate version(s)
+                    marker = f"python_version>='{py_versions[0]}',<={py_versions[-1]}"  # noqa: E501
+                else:  # upper-bound
+                    marker = f"python_version>='{py_versions[0]}'"
+
+                yield f'{package}==={version};{marker}\n'
+        elif list(versions.values())[0] != reference_versions:
+            # markers for packages with a single version - these are usually
+            # version specific so we use strict python versions for these
             for version, py_versions in sorted(versions.items()):
-                # Once the ecosystem matures, we can consider using OR.
                 for py_version in sorted(py_versions):
-                    yield (
-                        "%s===%s;python_version=='%s'\n" %
-                        (package, version, py_version))
+                    marker = f"python_version=='{py_version}'"
+                    yield f'{package}==={version};{marker}\n'
         else:
             # no markers
-            yield '%s===%s\n' % (package, list(versions.keys())[0])
+            yield f'{package}==={list(versions)[0]}\n'
 
 
 def _clone_versions(freezes, options):
@@ -156,12 +190,15 @@ def _clone_versions(freezes, options):
         if version in options.version_map:
             for dst_version in sorted(options.version_map[version]):
                 if dst_version not in versions:
-                    print("Duplicating %s freeze to %s" %
-                          (version, dst_version), file=sys.stderr)
+                    print(
+                        f"Duplicating {version} freeze to {dst_version}",
+                        file=sys.stderr,
+                    )
                     freezes.append((dst_version, copy.copy(freeze)))
 
 
 # -- untested UI glue from here down.
+
 
 def _validate_options(options):
     """Check that options are valid.
@@ -173,34 +210,41 @@ def _validate_options(options):
     for python in options.pythons:
         if not shutil.which(python):
             raise Exception(
-                "Python %(python)s not found." % dict(python=python))
+                "Python {python} not found.".format(**dict(python=python))
+            )
     if not options.requirements:
         raise Exception("No requirements file specified - see -r.")
     if not os.path.exists(options.requirements):
         raise Exception(
-            "Requirements file %(req)s not found."
-            % dict(req=options.requirements))
-    if options.blacklist and not os.path.exists(options.blacklist):
+            "Requirements file {req} not found.".format(
+                **dict(req=options.requirements)
+            )
+        )
+    if options.denylist and not os.path.exists(options.denylist):
         raise Exception(
-            "Blacklist file %(path)s not found."
-            % dict(path=options.blacklist))
+            "Denylist file {path} not found.".format(
+                **dict(path=options.denylist)
+            )
+        )
     version_map = {}
     for map_entry in options.version_map:
         if ':' not in map_entry:
             raise Exception(
-                "Invalid version-map entry %(map_entry)s"
-                % dict(map_entry=map_entry))
+                "Invalid version-map entry {map_entry}".format(
+                    **dict(map_entry=map_entry)
+                )
+            )
         src, dst = map_entry.split(':')
         version_map.setdefault(src, set())
         version_map[src].add(dst)
     options.version_map = version_map
 
 
-def _parse_blacklist(path):
+def _parse_denylist(path):
     """Return the strings from path if it is not None."""
     if path is None:
         return []
-    with open(path, 'rt') as f:
+    with open(path) as f:
         return [line.strip() for line in f]
 
 
@@ -220,30 +264,43 @@ def _make_sort_key(line):
 def main(argv=None, stdout=None):
     parser = optparse.OptionParser()
     parser.add_option(
-        "-p", dest="pythons", action="append",
+        "-p",
+        dest="pythons",
+        action="append",
         help="Specify Python versions to use when generating constraints."
-             "e.g. -p /usr/bin/python3")
+        "e.g. -p /usr/bin/python3",
+    )
     parser.add_option(
-        "-r", dest="requirements", help="Requirements file to process.")
+        "-r", dest="requirements", help="Requirements file to process."
+    )
     parser.add_option(
-        "-b", dest="blacklist",
-        help="Filename of a list of package names to exclude.")
+        "-b",
+        "-d",
+        dest="denylist",
+        help="Filename of a list of package names to exclude.",
+    )
     parser.add_option(
-        "--version-map", dest='version_map', default=[], action='append',
-        help=('Add a : separated list of versions to clone.  To \'clone\' '
-              'a freeze generated by python3.4 to python3.5 specify 3.4:3.5.  '
-              'This is intended as as a way to transition between python '
-              'versions when it\'s not possible to have all versions '
-              'installed'))
-    options, args = parser.parse_args(argv)
+        "--version-map",
+        dest='version_map',
+        default=[],
+        action='append',
+        help=(
+            'Add a : separated list of versions to clone.  To \'clone\' '
+            'a freeze generated by python3.4 to python3.5 specify 3.4:3.5.  '
+            'This is intended as as a way to transition between python '
+            'versions when it\'s not possible to have all versions '
+            'installed'
+        ),
+    )
+    options, _ = parser.parse_args(argv)
     if stdout is None:
         stdout = sys.stdout
     _validate_options(options)
     freezes = [
-        _freeze(options.requirements, python) for python in options.pythons]
+        _freeze(options.requirements, python) for python in options.pythons
+    ]
     _clone_versions(freezes, options)
-    blacklist = _parse_blacklist(options.blacklist)
-    frozen = [
-        *sorted(_combine_freezes(freezes, blacklist), key=_make_sort_key)]
-    stdout.writelines(frozen)
+    denylist = _parse_denylist(options.denylist)
+    frozen = [*sorted(_combine_freezes(freezes, denylist), key=_make_sort_key)]
+    stdout.writelines(SECURITY_WARNING + frozen)
     stdout.flush()

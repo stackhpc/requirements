@@ -18,32 +18,28 @@
 import argparse
 import contextlib
 import os
-import re
 import shlex
 import shutil
 import subprocess
 import sys
 import tempfile
 
-from openstack_requirements import check  # noqa
-from openstack_requirements import project  # noqa
-from openstack_requirements import requirement  # noqa
-
-
-PYTHON_3_BRANCH = re.compile(r'^stable\/[u-z].*')
+from openstack_requirements import check
+from openstack_requirements import project
+from openstack_requirements import requirement
 
 
 def run_command(cmd):
     print(cmd)
     cmd_list = shlex.split(str(cmd))
     kwargs = {}
-    if sys.version_info >= (3, ):
-        kwargs = {
-            'encoding': 'utf-8',
-            'errors': 'surrogateescape',
-        }
-    p = subprocess.Popen(cmd_list, stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE, **kwargs)
+    kwargs = {
+        'encoding': 'utf-8',
+        'errors': 'surrogateescape',
+    }
+    p = subprocess.Popen(
+        cmd_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs
+    )
     (out, err) = p.communicate()
     if p.returncode != 0:
         raise SystemError(err)
@@ -51,7 +47,8 @@ def run_command(cmd):
 
 
 _DEFAULT_REQS_DIR = os.path.expanduser(
-    '~/src/opendev.org/openstack/requirements')
+    '~/src/opendev.org/openstack/requirements'
+)
 
 
 def grab_args():
@@ -59,14 +56,19 @@ def grab_args():
     parser = argparse.ArgumentParser(
         description="Check if project requirements have changed"
     )
-    parser.add_argument('--local', action='store_true',
-                        help='check local changes (not yet in git)')
+    parser.add_argument(
+        '--local',
+        action='store_true',
+        help='check local changes (not yet in git)',
+    )
     parser.add_argument('src_dir', help='directory to process')
-    parser.add_argument('branch', nargs='?', default='master',
-                        help='target branch for diffs')
+    parser.add_argument(
+        'branch', nargs='?', default='master', help='target branch for diffs'
+    )
     parser.add_argument('--zc', help='what zuul cloner to call')
-    parser.add_argument('--reqs', help='use a specified requirements tree',
-                        default=None)
+    parser.add_argument(
+        '--reqs', help='use a specified requirements tree', default=None
+    )
 
     return parser.parse_args()
 
@@ -91,34 +93,40 @@ def main():
         if args.local:
             print('selecting default requirements directory for local mode')
             reqdir = os.path.dirname(
-                os.path.dirname(
-                    os.path.dirname(
-                        os.path.abspath(sys.argv[0]))))
+                os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))
+            )
         else:
             print('selecting default requirements directory for normal mode')
             reqdir = _DEFAULT_REQS_DIR
 
-    print('Branch: {}'.format(branch))
-    print('Source: {}'.format(args.src_dir))
-    print('Requirements: {}'.format(reqdir))
+    reqdir = os.path.abspath(reqdir)
+
+    print(f'Branch: {branch}')
+    print(f'Source: {args.src_dir}')
+    print(f'Requirements: {reqdir}')
 
     os.chdir(args.src_dir)
     sha, _ = run_command('git log -n 1 --format=%H')
-    print('Patch under test: {}'.format(sha))
+    print(f'Patch under test: {sha}')
 
     # build a list of requirements from the global list in the
     # openstack/requirements project so we can match them to the changes
     with tempdir():
-        with open(reqdir + '/global-requirements.txt', 'rt') as f:
-            global_reqs = check.get_global_reqs(f.read())
-        blacklist = requirement.parse(
-            open(reqdir + '/blacklist.txt', 'rt').read())
-        backports_file = reqdir + '/backports.txt'
-        if os.path.exists(backports_file):
-            backports = requirement.parse(open(backports_file, 'rt').read())
-        else:
-            backports = {}
+        with open(os.path.join(reqdir, 'global-requirements.txt')) as fh:
+            global_reqs = check.get_global_reqs(fh.read())
+
+        with open(os.path.join(reqdir, 'denylist.txt')) as fh:
+            denylist = requirement.parse(fh.read())
+
         cwd = os.getcwd()
+
+        # Verify that pyproject.toml is present and contains the required
+        # attributes. We only do this on master since we don't want to be
+        # strict on already released branches
+        pyproject_found = None
+        if branch in ('master', 'main'):
+            pyproject_found = project.verify_pyproject_toml(cwd)
+
         # build a list of requirements in the proposed change,
         # and check them for style violations while doing so
         head_proj = project.read(cwd)
@@ -133,32 +141,25 @@ def main():
         #    either.
         head_strict = not branch.startswith('stable/')
         head_reqs.process(strict=head_strict)
-        # Starting with Ussuri and later, we only need to be strict about
-        # Python 3 requirements.
-        python_3_branch = head_strict or PYTHON_3_BRANCH.match(branch)
 
         failed = check.validate(
             head_reqs,
-            blacklist,
+            denylist,
             global_reqs,
-            list(backports.keys()),
-            allow_3_only=python_3_branch,
-        )
-
-        failed = (
-            check.validate_lower_constraints(
-                head_reqs,
-                head_proj['lower-constraints.txt'],
-                blacklist,
-            )
-            or failed
         )
 
     # report the results
+    error = False
     if failed or head_reqs.failed:
         print("*** Incompatible requirement found!")
+        error = True
+    if pyproject_found is False:
+        print("*** Invalid or missing pyproject.toml!")
+        error = True
+    if error:
         print("*** See https://docs.openstack.org/requirements/latest/")
         sys.exit(1)
+
     print("Updated requirements match openstack/requirements.")
 
 

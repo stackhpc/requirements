@@ -16,51 +16,54 @@
 
 import collections
 import re
+import sys
 
-from packaging import markers
-from packaging import specifiers
-
-from openstack_requirements import project
+from openstack_requirements.project import Project
 from openstack_requirements import requirement
 
-MIN_PY_VERSION = '3.5'
 PY3_GLOBAL_SPECIFIER_RE = re.compile(
-    r'python_version(==|>=|>)[\'"]3\.\d+[\'"]')
+    r'python_version(==|>=|>)[\'"]3\.\d+[\'"]'
+)
 PY3_LOCAL_SPECIFIER_RE = re.compile(
-    r'python_version(==|>=|>|<=|<)[\'"]3\.\d+[\'"]')
+    r'python_version(==|>=|>|<=|<)[\'"]3\.\d+[\'"]'
+)
+WINDOWS_SPECIFIER_RE = re.compile(r'sys_platform!=[\'"]win32[\'"]')
 
 
-class RequirementsList(object):
-    def __init__(self, name, project):
+class RequirementsList:
+    def __init__(self, name: str, project: Project) -> None:
         self.name = name
-        self.reqs_by_file = {}
+        self.reqs_by_file: dict[str, dict[str, set[str]]] = {}
+        self.optional_reqs_by_file: dict[str, dict[str, set[str]]] = {}
         self.project = project
         self.failed = False
 
-    @property
-    def reqs(self):
-        return {k: v for d in self.reqs_by_file.values()
-                for k, v in d.items()}
-
-    def extract_reqs(self, content, strict):
+    def extract_reqs(
+        self, content: list[str], strict: bool
+    ) -> dict[str, set[str]]:
         reqs = collections.defaultdict(set)
-        parsed = requirement.parse(content)
+        parsed = requirement.parse_lines(content)
         for name, entries in parsed.items():
             if not name:
                 # Comments and other unprocessed lines
                 continue
+
             list_reqs = [r for (r, line) in entries]
             # Strip the comments out before checking if there are duplicates
             list_reqs_stripped = [r._replace(comment='') for r in list_reqs]
-            if strict and len(list_reqs_stripped) != len(set(
-                    list_reqs_stripped)):
-                print("ERROR: Requirements file has duplicate entries "
-                      "for package %s : %r." % (name, list_reqs))
+            if strict and len(list_reqs_stripped) != len(
+                set(list_reqs_stripped)
+            ):
+                print(
+                    f"ERROR: Requirements file has duplicate entries "
+                    f"for package {name} : {list_reqs!r}.",
+                    file=sys.stderr,
+                )
                 self.failed = True
             reqs[name].update(list_reqs)
         return reqs
 
-    def process(self, strict=True):
+    def process(self, strict: bool = True) -> None:
         """Convert the project into ready to use data.
 
         - an iterable of requirement sets to check
@@ -68,18 +71,52 @@ class RequirementsList(object):
           - each has a list of Requirements objects
           - duplicates are not permitted within that list
         """
-        print("Checking %(name)s" % {'name': self.name})
-        # First, parse.
-        for fname, content in self.project.get('requirements', {}).items():
-            print("Processing %(fname)s" % {'fname': fname})
-            if strict and not content.endswith('\n'):
-                print("Requirements file %s does not "
-                      "end with a newline." % fname)
-            self.reqs_by_file[fname] = self.extract_reqs(content, strict)
+        print(f"Checking {self.name}")
+        for fname, content in self.project['requirements'].items():
+            if (
+                fname
+                in {
+                    'tools/pip-requires',
+                    'tools/test-requires',
+                    'requirements-py2.txt',
+                    'requirements-py3.txt',
+                    'test-requirements-py2.txt',
+                    'test-requirements-py3.txt',
+                }
+                and content
+            ):
+                # TODO(stephenfin): Make this an error in the H cycle (mid
+                # 2026). These files are all obsolete and pbr no longer
+                # supported the pyN-suffixed files (since pbr 5.0) and never
+                # supported the *-requires files
+                print(
+                    "WARNING: Requirements file {fname} is non-standard "
+                    "and will cause an error in the future. "
+                    "Use a pyproject.toml or requirements.txt / "
+                    "test-requirements.txt file instead.",
+                    file=sys.stderr,
+                )
 
-        for name, content in project.extras(self.project).items():
-            print("Processing .[%(extra)s]" % {'extra': name})
-            self.reqs_by_file[name] = self.extract_reqs(content, strict)
+            print(f"Processing {fname} (requirements)")
+            self.reqs_by_file[f'{fname} (dependencies)'] = self.extract_reqs(
+                content, strict
+            )
+
+        for fname, extras in self.project['extras'].items():
+            print(f"Processing {fname} (extras)")
+            for name, content in extras.items():
+                print(f"  Processing {name!r} extra")
+                self.optional_reqs_by_file[f'{fname} ({name!r} extra)'] = (
+                    self.extract_reqs(content, strict)
+                )
+
+        for fname, groups in self.project['dependency_groups'].items():
+            print(f"Processing {fname} (dependency-groups)")
+            for name, content in groups.items():
+                print(f"  Processing {name!r} dependency group")
+                self.optional_reqs_by_file[
+                    f'{fname} ({name!r} dependency group)'
+                ] = self.extract_reqs(content, strict)
 
 
 def _get_exclusions(req):
@@ -93,61 +130,48 @@ def _get_exclusions(req):
 def _is_requirement_in_global_reqs(
     local_req,
     global_reqs,
-    backports,
-    allow_3_only=False,
 ):
     req_exclusions = _get_exclusions(local_req)
     for global_req in global_reqs:
-
         matching = True
         for aname in ['package', 'location', 'markers']:
             local_req_val = getattr(local_req, aname)
             global_req_val = getattr(global_req, aname)
             if local_req_val != global_req_val:
-                # if a python 3 version is not spefied in only one of
-                # global requirements or local requirements, allow it since
-                # python 3-only is okay
-                if (
-                    allow_3_only and
-                    matching and
-                    aname == 'markers'
-                ):
-                    if (
-                        not local_req_val and
-                        PY3_GLOBAL_SPECIFIER_RE.match(global_req_val)
-                    ):
-                        continue
-                    if (
-                        not global_req_val and
-                        local_req_val and
-                        PY3_LOCAL_SPECIFIER_RE.match(local_req_val)
+                if matching and aname == 'markers':
+                    # if a Python version marker is specified globally but not
+                    # locally, allow it since this is unnecessary boilerplate
+                    # for projects to carry
+                    if not local_req_val and PY3_GLOBAL_SPECIFIER_RE.match(
+                        global_req_val
                     ):
                         continue
 
-                # likewise, if a package is one of the backport packages then
-                # we're okay with a potential marker (e.g. if a package
-                # requires a feature that is only available in a newer Python
-                # library, while other packages are happy without this feature
-                if (
-                    matching and
-                    aname == 'markers' and
-                    local_req.package in backports
-                ):
-                    if re.match(
-                        r'python_version(==|<=|<)[\'"]3\.\d+[\'"]',
-                        local_req_val,
+                    # if a Python version marker is specified locally but not
+                    # globally, allow it since projects might only need the
+                    # package on specific Python versions
+                    if (
+                        not global_req_val
+                        and local_req_val
+                        and PY3_LOCAL_SPECIFIER_RE.match(local_req_val)
                     ):
-                        print(
-                            'Ignoring backport package with python_version '
-                            'marker'
-                        )
                         continue
 
-                print(f'WARNING: possible mismatch found for package "{local_req.package}"')  # noqa: E501
-                print(f'   Attribute "{aname}" does not match')
-                print(f'   "{local_req_val}" does not match "{global_req_val}"')  # noqa: E501
-                print(f'   {local_req}')
-                print(f'   {global_req}')
+                    # OpenStack no longer supports Windows. If a package wants
+                    # to drop their sys_platform marker, let them.
+                    if not local_req_val and WINDOWS_SPECIFIER_RE.match(
+                        global_req_val
+                    ):
+                        continue
+
+                print(
+                    f'WARNING: possible mismatch found for package '
+                    f'{local_req.package!r}\n'
+                    f'   Attribute "{aname}" does not match\n'
+                    f'   "{local_req_val}" does not match "{global_req_val}"\n'
+                    f'   {local_req}\n'
+                    f'   {global_req}'
+                )
                 matching = False
         if not matching:
             continue
@@ -161,23 +185,19 @@ def _is_requirement_in_global_reqs(
         else:
             difference = req_exclusions - global_exclusions
             print(
-                "ERROR: Requirement for package {} "
-                "excludes a version not excluded in the "
-                "global list.\n"
-                "  Local settings : {}\n"
-                "  Global settings: {}\n"
-                "  Unexpected     : {}".format(
-                    local_req.package, req_exclusions, global_exclusions,
-                    difference)
+                f"ERROR: Requirement for package {local_req.package} "
+                f"excludes a version not excluded in the global list.\n"
+                f"  Local settings : {list(req_exclusions)}\n"
+                f"  Global settings: {list(global_exclusions)}\n"
+                f"  Unexpected     : {list(difference)}"
             )
             return False
 
     print(
-        "ERROR: "
-        "Could not find a global requirements entry to match package {}. "
-        "If the package is already included in the global list, "
-        "the name or platform markers there may not match the local "
-        "settings.".format(local_req.package)
+        f"ERROR: Could not find a global requirements entry to match package "
+        f"{local_req.package}. If the package is already included in the "
+        f"global list, the name or platform markers there may not match the "
+        f"local settings."
     )
     return False
 
@@ -197,39 +217,27 @@ def get_global_reqs(content):
     return global_reqs
 
 
-def _get_python3_reqs(reqs):
-    """Filters out the reqs that are less than our minimum version."""
-    results = []
-    for req in reqs:
-        if not req.markers:
-            results.append(req)
-        else:
-            req_markers = markers.Marker(req.markers)
-            if req_markers.evaluate({
-                'python_version': MIN_PY_VERSION,
-            }):
-                results.append(req)
-    return results
-
-
 def _validate_one(
     name,
     reqs,
-    blacklist,
+    denylist,
     global_reqs,
-    backports,
-    allow_3_only=False,
+    *,
+    is_optional,
 ):
     """Returns True if there is a failure."""
 
-    if name in blacklist:
-        # Blacklisted items are not synced and are managed
+    if name in denylist:
+        # Denylisted items are not synced and are managed
         # by project teams as they see fit, so no further
         # testing is needed.
         return False
 
     if name not in global_reqs:
-        print("ERROR: Requirement '%s' not in openstack/requirements" % reqs)
+        if is_optional:
+            return False
+
+        print(f"ERROR: Requirement '{reqs}' not in openstack/requirements")
         return True
 
     counts = {}
@@ -240,38 +248,29 @@ def _validate_one(
         else:
             counts[''] = counts.get('', 0) + 1
 
-        if not _is_requirement_in_global_reqs(
-            req, global_reqs[name], backports, allow_3_only,
-        ):
+        if not _is_requirement_in_global_reqs(req, global_reqs[name]):
             return True
 
         # check for minimum being defined
         min = [s for s in req.specifiers.split(',') if '>' in s]
         if not min:
-            print("ERROR: Requirement for package '%s' has no lower bound" %
-                  name)
+            print(
+                f"ERROR: Requirement for package '{name}' has no lower bound"
+            )
             return True
 
     for extra, count in counts.items():
-        # Make sure the number of entries matches. If allow_3_only, then we
-        # just need to make sure we have at least the number of entries for
-        # supported Python 3 versions.
+        # Make sure the number of entries matches.
         if count != len(global_reqs[name]):
-            if (allow_3_only and
-                    count >= len(_get_python3_reqs(global_reqs[name]))):
-                print("WARNING (probably OK for Ussuri and later): "
-                      "Package '%s%s' is only tracking python 3 "
-                      "requirements" % (
-                        name,
-                        ('[%s]' % extra) if extra else ''))
-                continue
-
-            print("ERROR: Package '%s%s' requirement does not match "
-                  "number of lines (%d) in "
-                  "openstack/requirements" % (
-                      name,
-                      ('[%s]' % extra) if extra else '',
-                      len(global_reqs[name])))
+            print(
+                "ERROR: Package '{}{}' requirement does not match "
+                "number of lines ({}) in "
+                "openstack/requirements".format(
+                    name,
+                    (f'[{extra}]') if extra else '',
+                    len(global_reqs[name]),
+                )
+            )
             return True
 
     return False
@@ -279,154 +278,31 @@ def _validate_one(
 
 def validate(
     head_reqs,
-    blacklist,
+    denylist,
     global_reqs,
-    backports,
-    allow_3_only=False,
 ):
     failed = False
     # iterate through the changing entries and see if they match the global
     # equivalents we want enforced
-    for fname, freqs in head_reqs.reqs_by_file.items():
-        print("Validating %(fname)s" % {'fname': fname})
-        for name, reqs in freqs.items():
-            failed = (
-                _validate_one(
-                    name,
-                    reqs,
-                    blacklist,
-                    global_reqs,
-                    backports,
-                    allow_3_only,
+    # note that extras and dependency groups are project-specific and may not
+    # be present in global-requirements, so we only note their absence rather
+    # than failing if so
+    for reqs_by_file, is_optional in (
+        (head_reqs.reqs_by_file, False),
+        (head_reqs.optional_reqs_by_file, True),
+    ):
+        for fname, freqs in reqs_by_file.items():
+            print(f"Validating {fname}")
+            for name, reqs in freqs.items():
+                failed = (
+                    _validate_one(
+                        name,
+                        reqs,
+                        denylist,
+                        global_reqs,
+                        is_optional=is_optional,
+                    )
+                    or failed
                 )
-                or failed
-            )
 
-    return failed
-
-
-def _find_constraint(req, constraints):
-    """Return the constraint matching the markers for req.
-
-    Given a requirement, find the constraint with matching markers.
-    If none match, find a constraint without any markers at all.
-    Otherwise return None.
-    """
-    if req.markers:
-        req_markers = markers.Marker(req.markers)
-        for constraint_setting, _ in constraints:
-            if constraint_setting.markers == req.markers:
-                return constraint_setting
-            if not constraint_setting.markers:
-                # There is no point in performing the complex
-                # comparison for a constraint that has no markers, so
-                # we skip it here. If we find no closer match then the
-                # loop at the end of the function will look for a
-                # constraint without a marker and use that.
-                continue
-            # NOTE(dhellmann): This is a very naive attempt to check
-            # marker compatibility that relies on internal
-            # implementation details of the packaging library.  The
-            # best way to ensure the constraint and requirements match
-            # is to use the same marker string in the corresponding
-            # lines.
-            c_markers = markers.Marker(constraint_setting.markers)
-            env = {
-                str(var): str(val)
-                for var, op, val in c_markers._markers  # WARNING: internals
-            }
-            if req_markers.evaluate(env):
-                return constraint_setting
-    # Try looking for a constraint without any markers.
-    for constraint_setting, _ in constraints:
-        if not constraint_setting.markers:
-            return constraint_setting
-    return None
-
-
-def validate_lower_constraints(req_list, constraints, blacklist):
-    """Return True if there is an error.
-
-    :param reqs: RequirementsList for the head of the branch
-    :param constraints: Parsed lower-constraints.txt or None
-
-    """
-    if constraints is None:
-        return False
-
-    parsed_constraints = requirement.parse(constraints)
-
-    failed = False
-
-    for fname, freqs in req_list.reqs_by_file.items():
-
-        if fname == 'doc/requirements.txt':
-            # Skip things that are not needed for unit or functional
-            # tests.
-            continue
-
-        print("Validating lower constraints of {}".format(fname))
-
-        for name, reqs in freqs.items():
-
-            if name in blacklist:
-                continue
-
-            if name not in parsed_constraints:
-                print('ERROR: Package {!r} is used in {} '
-                      'but not in lower-constraints.txt'.format(
-                          name, fname))
-                failed = True
-                continue
-
-            for req in reqs:
-                spec = specifiers.SpecifierSet(req.specifiers)
-                # FIXME(dhellmann): This will only find constraints
-                # where the markers match the requirements list
-                # exactly, so we can't do things like use different
-                # constrained versions for different versions of
-                # python 3 if the requirement range is expressed as
-                # python_version>3.0. We can support different
-                # versions if there is a different requirement
-                # specification for each version of python. I don't
-                # really know how smart we want this to be, because
-                # I'm not sure we want to support extremely
-                # complicated dependency sets.
-                constraint_setting = _find_constraint(
-                    req,
-                    parsed_constraints[name],
-                )
-                if not constraint_setting:
-                    print('ERROR: Unable to find constraint for {} '
-                          'matching {!r} or without any markers.'.format(
-                              name, req.markers))
-                    failed = True
-                    continue
-
-                version = constraint_setting.specifiers.lstrip('=')
-
-                if not spec.contains(version):
-                    print('ERROR: Package {!r} is constrained to {} '
-                          'which is incompatible with the settings {} '
-                          'from {}.'.format(
-                              name, version, req, fname))
-                    failed = True
-
-                min = [
-                    s
-                    for s in req.specifiers.split(',')
-                    if '>' in s
-                ]
-                if not min:
-                    # No minimum specified. Ignore this and let some
-                    # other validation trap the error.
-                    continue
-
-                expected = min[0].lstrip('>=')
-                if version != expected:
-                    print('ERROR: Package {!r} is constrained to {} '
-                          'which does not match '
-                          'the minimum version specifier {} in {}'.format(
-                              name, version, expected, fname))
-                    failed = True
     return failed
